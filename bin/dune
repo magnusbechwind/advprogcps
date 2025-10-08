@@ -1,0 +1,4 @@
+(executable
+ (public_name advprog)
+ (name main)
+ (libraries advprog))
