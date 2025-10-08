@@ -1,4 +1,8 @@
 (executable
- (public_name advprog)
+ (public_name main)
  (name main)
- (libraries advprog))
+ (libraries lib))
+
+(env
+  (dev
+    (flags (:standard -warn-error -A)))) 

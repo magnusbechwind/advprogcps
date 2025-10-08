@@ -1,2 +1,7 @@
 (library
- (name advprog))
+ (name lib)
+ (libraries printbox printbox-text))
+
+(env
+  (dev
+    (flags (:standard -warn-error -A)))) 
