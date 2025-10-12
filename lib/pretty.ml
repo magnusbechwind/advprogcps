@@ -22,16 +22,21 @@ let make_info_node_line info = PBox.line_with_style info_node_style info
 
 let ident_to_tree (Ident(ident)) = make_ident_line ident
 
-
-
 let op_to_tree op =
   match op with
-  | Ast.Add -> make_keyword_line "Add"
+    | Ast.Add -> make_keyword_line "Add"
+    | Ast.Sub -> make_keyword_line "Sub"
+    | Ast.Mul -> make_keyword_line "Mul"
+    | Ast.Div -> make_keyword_line "Div"
+    | _ -> raise (Ast.Todo "op_to_tree is missing a case")
 
-let str_of_op op = 
+    let str_of_op op = 
   match op with
     | Ast.Add -> "Add"
-
+    | Ast.Sub -> "Sub"
+    | Ast.Mul -> "Mul"
+    | Ast.Div -> "Div"
+    | _ -> raise (Ast.Todo "str_of_op  is missing a case")
 
 let rec val_to_tree v =
   match v with 
@@ -54,7 +59,14 @@ and expr_to_tree e =
         [PBox.hlist ~bars:false [make_info_node_line "Else-Branch: "; expr_to_tree elseexpr]])
     | App(expr, exprs) -> PBox.tree (make_keyword_line "Application") @@
         [PBox.hlist ~bars:false [expr_to_tree expr]; 
-        (PBox.tree (make_info_node_line "Args") (List.map expr_to_tree exprs))]
+        (* sorry i broke it :-) *)
+        PBox.hlist ~bars:false [expr_to_tree exprs]]
+    | Primop (op, exprs) -> 
+      let f acc x = expr_to_tree x :: acc in
+      PBox.tree (make_keyword_line (str_of_op op ^ "(primop)") ) [PBox.tree (make_info_node_line "Args") (List.fold_left f [] exprs)]
+    | Fn (ident, expr) ->
+      PBox.tree (make_keyword_line "lambda") [PBox.tree (make_info_node_line "Arg") [ident_to_tree ident]; PBox.tree (make_info_node_line "Body") [expr_to_tree expr]]
+    | _ -> raise (Ast.Todo "missing cases in expr_to_tree")
 
 let program_to_tree prog = 
   PBox.tree (make_info_node_line "Program") [expr_to_tree prog]

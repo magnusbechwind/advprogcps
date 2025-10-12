@@ -1,4 +1,6 @@
-(lang dune 3.20)
+(lang dune 3.14)
+
+(using menhir 3.0)
 
 (name advprog)
 
