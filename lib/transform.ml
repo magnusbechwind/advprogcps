@@ -1,6 +1,3 @@
-open Ast
-open Cps
-
 let fresh_var =
   let i = ref 0 in
   fun _: (Ast.ident) ->

@@ -1,5 +1,4 @@
 open Lib
-open Ast
 
 let initLexer filename =
   let input = open_in filename in
