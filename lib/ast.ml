@@ -8,16 +8,18 @@ type op =
   (* first-class continuations (todo) *) | Callcc | Throw | Reset | Shift
 
   type expr =
+  | Const of value
   | Var of ident
-  | Fn of ident * expr
-  | Fix of ident list * expr list * expr
   | Int of int
   | Bool of bool
+  | Fn of ident * expr
+  | Fix of ident list * expr list * expr
   | App of expr * expr
-  | Primop of op * expr list
+  | Tuple of expr list
+  | Select of int * expr
   | IfEl of expr * expr * expr
+  | Primop of op
   (* the types below may have to be discarded based on how Compiling with Continuations described their lambda language *)
-  | Const of value
   | Let of ident * expr * expr
   | BinOp of op * expr * expr (* Might make sense to only encode binops. No need to handle lists then *)
 and value = 

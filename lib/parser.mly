@@ -1,6 +1,23 @@
 %{
-    open Ast
-    let get_ident id = Ast.Var (Ast.Ident id)
+  open Ast
+  let get_ident id = Ast.Var (Ast.Ident id)
+
+  let rec curry' (expr: Ast.expr) (acc: Ast.expr list) : (Ast.expr * Ast.expr list) =
+    begin match expr with
+      Ast.App (e1, e2) ->
+        begin match e1 with
+          Ast.App (e3,e4) ->
+            curry' e3 (e4 :: e2 :: acc)
+          | _ -> e1, List.rev (e2 :: acc)
+          end
+      | _ -> (expr, acc)
+      end
+  
+  let rec curry expr =
+    let (app,tpl) = curry' expr [] in
+    let tup = if List.length tpl == 1 then List.hd tpl else Ast.Tuple tpl
+    in Ast.App (app, tup)
+
 %}
 
 %token EOF
@@ -31,25 +48,31 @@ prog:
 
 // each expr_* encodes precedence levels of the particular operations
 expr:
-  | LET ident = IDENT EQ e1 = expr IN e2 = expr {Let (Ast.Ident ident, e1, e2)}
+  | LET ident = IDENT EQ e1 = expr IN e2 = expr { Ast.App (Ast.Fn (Ast.Ident ident, e1), e2) }
+  // {Let (Ast.Ident ident, e1, e2)}
   | IF e1 = expr THEN e2 = expr ELSE e3 = expr {Ast.IfEl (e1, e2, e3)}
   | e = expr_add { e }
   | l = lambda { l }
 
 // + before *
 expr_add:
-    e1 = expr_add op = add_ops e2 = expr_mul { Ast.Primop (op, [e2; e1]) }
+    e1 = expr_add op = add_ops e2 = expr_mul { Ast.App (Ast.Primop op, Ast.Tuple [e2; e1]) }
   | e = expr_mul { e }
 
 // * before application
 expr_mul:
-    e1 = expr_mul op = mul_ops e2 = expr_app { Ast.Primop (op, [e2; e1]) }
+    e1 = expr_mul op = mul_ops e2 = expr_app { Ast.App (Ast.Primop op, Ast.Tuple [e2; e1]) }
   | e = expr_app { e }
 
 // app before constants or ()
 expr_app:
-    e1 = expr_app e2 = expr_val {Ast.App (e1, e2)}
-  | e = expr_val { e }
+  e1 = expr_curry e2 = expr_val { curry (Ast.App(e1, e2))}
+| e = expr_val { e 
+}
+
+expr_curry:
+  e1 = expr_curry e2 = expr_val {Ast.App (e1, e2)}
+| e = expr_val { e }
 
 // '(' expr ')' recurses back to the first rule
 expr_val:
