@@ -11,7 +11,6 @@ type op =
   [@@deriving show]
 
   type expr =
-  | Const of value
   | Var of ident
   | Int of int
   | Bool of bool
@@ -22,11 +21,6 @@ type op =
   | IfEl of expr * expr * expr
   | Primop of op
   | Fix of ident list * expr list * expr
-  (* the types below may have to be discarded based on how Compiling with Continuations described their lambda language *)
-  | Let of ident * expr * expr
-  | BinOp of op * expr * expr (* Might make sense to only encode binops. No need to handle lists then *)
-and value = 
-  | Lambda of ident list * expr
 [@@deriving show]
 
 type prog = expr option
