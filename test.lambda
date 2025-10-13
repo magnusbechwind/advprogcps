@@ -1,3 +1,1 @@
-let x = \y -> y+1 2 in
-let z = x 4 5 6 in
-let v = 1 + 2 * 3 in v
+2+2+3

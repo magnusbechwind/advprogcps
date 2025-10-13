@@ -17,5 +17,8 @@ let parse file =
 let () = 
   let x = parse "test.lambda" in
   match x with
-    Some e -> PrintBox_text.output stdout (Pretty.program_to_tree e); print_endline "\n"
+    Some e -> PrintBox_text.output stdout (Pretty.program_to_tree e); print_endline "\n";
+    let cp = Transform.cps e in
+    PrintBox_text.output stdout (Prettycps.cps_to_tree cp);
+    ()
   | _ -> ()

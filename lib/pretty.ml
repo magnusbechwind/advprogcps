@@ -38,36 +38,23 @@ let op_to_tree op =
     | Ast.Div -> "Div"
     | _ -> raise (Ast.Todo "str_of_op  is missing a case")
 
-let rec val_to_tree v =
-  match v with 
+let rec expr_to_tree e =
+  match e with 
     | Ast.Int(int) -> PBox.hlist ~bars:false [make_info_node_line "Int("; PBox.line (string_of_int int); make_info_node_line ")"]
     | Bool(bool) -> PBox.hlist ~bars:false [make_info_node_line "Bool("; make_keyword_line (if bool then "true" else "false"); make_info_node_line ")"]
     | Var(ident) -> PBox.hlist ~bars:false [make_info_node_line "Var("; ident_to_tree ident; make_info_node_line ")"]
-    | Lambda(params, body) -> PBox.tree (make_info_node_line "Lambda")
-      [PBox.tree (make_info_node_line "Params") (List.map (fun e -> ident_to_tree e) params); PBox.tree (make_info_node_line "Body") [expr_to_tree body]]
-and expr_to_tree e =
-  match e with 
-    | Const(value) -> val_to_tree value
-    | BinOp(op, l, r) -> PBox.tree (make_info_node_line "BinOp") [expr_to_tree l; op_to_tree op; expr_to_tree r]
-    | Let(ident, body, in_exp) -> PBox.tree (make_keyword_line "Let") 
-        [PBox.hlist ~bars:false [make_info_node_line "Ident: "; ident_to_tree ident]; 
-        PBox.hlist ~bars:false [make_info_node_line "Body: "; expr_to_tree body];
-        PBox.tree (make_info_node_line "In: ") [expr_to_tree in_exp]]
     | IfEl(cond, thenexpr, elseexpr) ->
-        PBox.tree (make_keyword_line "IfElse")
-        ([PBox.hlist ~bars:false [make_info_node_line "Cond: "; expr_to_tree cond]; PBox.hlist ~bars:false [make_info_node_line "Then-Branch: "; expr_to_tree thenexpr]] @
-        [PBox.hlist ~bars:false [make_info_node_line "Else-Branch: "; expr_to_tree elseexpr]])
+      PBox.tree (make_keyword_line "IfElse")
+      ([PBox.hlist ~bars:false [make_info_node_line "Cond: "; expr_to_tree cond]; PBox.hlist ~bars:false [make_info_node_line "Then-Branch: "; expr_to_tree thenexpr]] @
+      [PBox.hlist ~bars:false [make_info_node_line "Else-Branch: "; expr_to_tree elseexpr]])
     | App(expr, exprs) -> PBox.tree (make_keyword_line "Application") @@
-        [PBox.hlist ~bars:false [expr_to_tree expr]; 
-        (* sorry i broke it :-) *)
-        PBox.hlist ~bars:false [expr_to_tree exprs]]
+      [PBox.hlist ~bars:false [expr_to_tree expr]; 
+      (* sorry i broke it :-) *)
+      PBox.hlist ~bars:false [expr_to_tree exprs]]
     | Primop (op) -> 
       PBox.tree (make_keyword_line (str_of_op op)) []
-      (* failwith "primop was changed from op * expr list to op" *)
-      (* let f acc x = expr_to_tree x :: acc in
-      PBox.tree (make_keyword_line (str_of_op op ^ "(primop)") ) [PBox.tree (make_info_node_line "Args") (List.fold_left f [] exprs)] *)
     | Fn (ident, expr) ->
-      PBox.tree (make_keyword_line "lambda") [PBox.tree (make_info_node_line "Arg") [ident_to_tree ident]; PBox.tree (make_info_node_line "Body") [expr_to_tree expr]]
+      PBox.tree (make_keyword_line "Fn") [PBox.tree (make_info_node_line "Arg") [ident_to_tree ident]; PBox.tree (make_info_node_line "Body") [expr_to_tree expr]]
     | Tuple exprs ->
       let f acc x =
         expr_to_tree x :: acc in

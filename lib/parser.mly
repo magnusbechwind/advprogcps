@@ -76,7 +76,7 @@ expr_curry:
 
 // '(' expr ')' recurses back to the first rule
 expr_val:
-    v = value { Ast.Const v }
+    v = value { v }
   | LPAREN e = expr RPAREN { e }
 
 value:
