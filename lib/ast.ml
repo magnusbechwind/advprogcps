@@ -20,7 +20,7 @@ type op =
   | Select of int * expr
   | IfEl of expr * expr * expr
   | Primop of op
-  | Fix of ident list * expr list * expr
+  | Fix of (ident * expr) list * expr
 [@@deriving show]
 
 type prog = expr option
