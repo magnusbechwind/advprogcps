@@ -10,7 +10,7 @@ type op =
   (* first-class continuations (todo) *) | Callcc | Throw | Reset | Shift
   [@@deriving show]
 
-  type expr =
+type expr =
   | Var of ident
   | Int of int
   | Bool of bool

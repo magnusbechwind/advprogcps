@@ -1,33 +1,36 @@
 open Ast
 
 (* TODO: Refactor into Errors module and add pretty priting. Store types etc *)
-exception UnsupporterdExpression of string
 exception UnboundVar of string
-exception CallableMismatch of string
-exception TupleMismatch of string
 exception IllegalTupleAccess of string
-exception BoolMismatch of string
-exception UnsupportedOp of string
 exception TypeMismatch of string
+exception UnsupportedOp of string
 
 
-module Env = Map.Make(String)
+module Env = struct 
+  (* Stupid evil hack to make show work. Might break everything. Who knows*)
+  include Map.Make(String)
+  let pp = failwith "error"
+end
+
+
+(* List of function declarations. Used for mutual recursion.*)
+type decl = ident * expr
+[@@deriving show]
 
 (* TODO: Better name than answer? eval_res? *)
-(* TODO: Show er bras, kan i hvert fald ikke derive show når jeg bruger env *)
-type decl = ident * ident * expr
-
 type answer =
-  | IntVal of int [@deriving show]
-  | BoolVal of bool [@deriving show]
+  | IntVal of int 
+  | BoolVal of bool
   (* Closures are an identifier, an expression, env at decl time and functions declared alongside (for fix)*)
-  | ClosureVal of ident * expr * env * decl list [@deriving show]
-  | TupleVal of answer list [@deriving show]
-  | OpVal of op [@deriving show]
+  | ClosureVal of ident * expr * env * decl list
+  | TupleVal of answer list
+  | OpVal of op
 and 
- env = answer Env.t [@deriving show]
+ env = answer Env.t 
+[@@deriving show]
 
-let int_of_val x = match x with | IntVal i -> i | _ -> raise @@ TypeMismatch ("Expected Int")
+let int_of_val x = match x with | IntVal i -> i | _ -> raise @@ TypeMismatch ("Expected Int but fould" ^ show_answer x)
 let int_bin_fun_of_op op = match op with
 | Add -> (+)
 | Sub -> (-)
@@ -54,14 +57,14 @@ let rec eval (env: env) (expr: expr) =
   | Tuple(exprs) -> TupleVal(List.map (fun x -> eval env x) exprs)
 
   | App (callable_expr, arg_expr) -> 
-    evalc env callable_expr arg_expr
+    eval_callable env callable_expr arg_expr
 
   | Select(int, expr) -> 
     let tuple = evalt env expr in
 
     begin match List.nth_opt tuple int with 
     | Some v -> v
-    | None -> raise @@ IllegalTupleAccess "Tried to access invalid index of tuple"
+    | None -> raise @@ IllegalTupleAccess (Printf.sprintf "Tried to acces invalid index %d of tuple (%s)" int (List.fold_right (fun t acc -> (show_answer t) ^ acc) tuple ""))
     end
   
   | IfEl (e1, e2, e3) -> 
@@ -70,21 +73,29 @@ let rec eval (env: env) (expr: expr) =
 
   | Primop op -> OpVal op
 
-  | Fix (funs, expr) -> 
-   (* TODO: fix mutual recursion. Maybe refactor decl type to just be ident * expr and expect expr to be lambda *)
-
-
-    failwith "hej"
+  | Fix (decls, expr) -> 
+    
+    let env' = List.fold_left (fun acc_env (id, f_expr) -> 
+       insert acc_env id @@ (clos_with_decls env f_expr decls)
+    ) env decls in
+    
+    eval env' expr
   
-  and evalc env expr arg_expr =
+  and clos_with_decls env expr decls =
+    let answer = eval env expr in
+    match answer with
+    | ClosureVal(ident, expr, env, _) -> ClosureVal(ident, expr, env, decls)
+    | _ -> raise @@ TypeMismatch ("Expected Closure but found" ^ show_answer answer) 
+  
+  and eval_callable env expr arg_expr =
     let answer = eval env expr in
     match answer with 
 
     (* Closures implemented according to programming languages week 6 slide 17 *)
     | ClosureVal(ident, expr, cenv, decls) -> 
 
-      let cenv' = List.fold_left (fun acc_env (f_id, f_arg_id, decl_expr) -> 
-       insert acc_env f_id @@ ClosureVal(f_arg_id, decl_expr, cenv, decls)
+      let cenv' = List.fold_left (fun acc_env (f_id, f_expr) -> 
+       insert acc_env f_id @@ (clos_with_decls cenv f_expr decls)
       ) cenv decls in 
 
       let body_env = insert cenv' ident (eval env arg_expr) in 
@@ -92,22 +103,23 @@ let rec eval (env: env) (expr: expr) =
       eval body_env expr
 
     | OpVal op -> evalop env op arg_expr
-    | _ -> raise @@ CallableMismatch ("Expected Callable")
+    | _ -> raise @@ TypeMismatch ("Expected Callable but found" ^ show_answer answer)
+
   and evalt env expr =
     let answer = eval env expr in
     match answer with
     | TupleVal(answers) -> answers
-    | _ -> raise @@ TupleMismatch ("Expected Tuple")
+    | _ -> raise @@ TypeMismatch ("Expected Tuple but found" ^ show_answer answer)
   and evalt2 env expr = 
     begin match evalt env expr with 
-    | l :: r :: _ -> (int_of_val l, int_of_val r)
-      | _ -> failwith @@ "Expected tuple2 res "
+    | l :: r :: [] -> (int_of_val l, int_of_val r)
+      | _ -> raise @@ TypeMismatch ("Expected Tuple of two elements but found")
     end
   and evalb env expr = 
     let answer = eval env expr in
     match answer with
     | BoolVal(answer) -> answer
-    | _ -> raise @@ BoolMismatch ("Expected Bool")
+    | _ -> raise @@ TypeMismatch ("Expected Boolean but found" ^ show_answer answer)
   and evalop env op arg_expr =
     match op with 
 
