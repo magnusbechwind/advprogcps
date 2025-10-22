@@ -7,6 +7,7 @@ rule token = parse
 
 | "let" { LET }
 | "in" { IN }
+| "," { COMMA }
 
 (* | "bool" { BOOL } *)
 | "true" { TRUE }
@@ -29,6 +30,7 @@ rule token = parse
 | "throw" { THROW }
 | "shift" { SHIFT }
 | "reset" { RESET }
+
 
 (* file manipulation stuff *)
 | [' ''\t'] { token lexbuf }

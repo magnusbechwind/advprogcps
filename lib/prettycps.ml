@@ -17,14 +17,20 @@ let make_info_node_line info = PBox.line_with_style info_node_style info
 
 let ident_to_tree (Ast.Ident(ident)) = make_ident_line ident
 
+let ident_str (Ast.Ident v) = v
+
 let rec value_to_tree value = 
   match value with
     | Cps.Int(int) -> PBox.hlist ~bars:false [make_info_node_line "Int("; PBox.line (string_of_int int); make_info_node_line ")"]
     | Bool(bool) -> PBox.hlist ~bars:false [make_info_node_line "Bool("; make_keyword_line (if bool then "true" else "false"); make_info_node_line ")"]
     | Var(ident) -> PBox.hlist ~bars:false [make_info_node_line "Var("; ident_to_tree ident; make_info_node_line ")"]
 
-and fix_to_tree cexp =
-  failwith "todo fix_to_tree"
+and fix_to_tree = function
+| (id, ids, a) -> 
+  let x = PBox.tree (make_info_node_line "Idents") (List.fold_left (fun acc x -> ident_to_tree x :: acc) [] ids) in
+  let y = PBox.tree (make_info_node_line "Cont.") [cps_to_tree a] in
+  let z = [x; y] in
+  let w = PBox.tree (make_keyword_line (ident_str id)) z in w
 
 and cps_to_tree cexp =
   match cexp with
@@ -38,10 +44,42 @@ and cps_to_tree cexp =
     let field_ids acc (v,i) = [make_fieldname_line (string_of_int i); value_to_tree v] @ acc in
       PBox.tree (make_keyword_line "Tuple")
       [ PBox.tree (make_keyword_line "Fields") (List.fold_left field_ids [] fields ); make_keyword_line id; cps_to_tree cexp]
-  | Cps.Select (i, v, Ast.Ident id, cexp) -> failwith "cps_to_tree select todo"
+  | Cps.Select (_, _, Ast.Ident _, _) -> failwith "cps_to_tree select todo"
   | Cps.Primop (op, vals, ids, cexps) ->
     let valtree = List.fold_left (fun acc x -> value_to_tree x :: acc) [] vals in
     let idtree = List.fold_left (fun acc x -> ident_to_tree x :: acc) [] ids in
     let cexptree = List.fold_left (fun acc x -> cps_to_tree x :: acc) [] cexps in
     PBox.tree (make_keyword_line "Primop") (Pretty.op_to_tree op :: valtree @ idtree @ cexptree)
   | _ -> failwith "missing cases in cps_to_tree"
+
+let rec value_repr = function
+| Cps.Var (Ast.Ident v) -> v
+| Cps.Int i -> string_of_int i
+| Cps.Bool b -> string_of_bool b
+
+and cps_ast_repr = function
+| Cps.Halt ->
+  "(halt)"
+| Cps.App (v, vals) ->
+  "(app)"^value_repr v ^ " " ^ List.fold_left (fun acc x -> value_repr x ^ " " ^ acc) "" vals
+| Cps.Fix (fix, cexp) ->
+  "(fix)"^List.fold_left
+    (fun acc (id, ids, cexp') -> "let " ^ ident_str id ^ " =" ^ List.fold_left
+      (fun acc' x' -> " " ^ ident_str x' ^ acc'
+      ) "" ids ^
+      acc ^ "in\n" ^ cps_ast_repr cexp' ^ "\n"
+    ) " " fix ^
+    " in\n(fix end)" ^ cps_ast_repr cexp
+| Cps.Tuple (vals, id, cexp) ->
+  "(tuple)"^"let " ^ ident_str id ^ " = (" ^ value_repr (fst (List.hd vals)) ^ List.fold_left (fun acc (x,_) -> ", " ^ value_repr x ^ acc) "" (List.tl vals) ^ ") in \n" ^ cps_ast_repr cexp
+| Cps.Select _ -> failwith "Select not implemented (in cps_ast_repr)"
+| Cps.Primop (op, [a;b], [id], cexps) -> 
+  let op = match op with
+  | Ast.Add -> "+"
+  | Ast.Sub -> "-"
+  | Ast.Mul -> "*"
+  | Ast.Div -> "/"
+  | _ -> failwith "unreachable"
+in
+  "(primop)"^"let " ^ ident_str id ^ " = " ^ value_repr a ^ " " ^ op ^ " " ^ value_repr b ^ "" ^ List.fold_left (fun acc x -> " in\n" ^ cps_ast_repr x ^ acc ) "" cexps
+  | _ -> failwith "abc"
