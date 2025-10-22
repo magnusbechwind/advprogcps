@@ -1,5 +1,4 @@
 %{
-  open Ast
   let get_ident id = Ast.Var (Ast.Ident id)
 
   let rec curry' (expr: Ast.expr) (acc: Ast.expr list) : (Ast.expr * Ast.expr list) =
@@ -17,6 +16,9 @@
     let (app,tpl) = curry' expr [] in
     let tup = if List.length tpl == 1 then List.hd tpl else Ast.Tuple tpl
     in Ast.App (app, tup)
+
+  let curry_tuple (Ast.Tuple tpl) : Ast.expr =
+    failwith "todo"
 
 %}
 
@@ -36,6 +38,7 @@
 %token RPAREN
 %token UNDERSCORE
 %token RARROW
+%token COMMA
 
 %start prog
 %type <Ast.prog> prog
@@ -77,12 +80,21 @@ expr_curry:
 // '(' expr ')' recurses back to the first rule
 expr_val:
     v = value { v }
-  | LPAREN e = expr RPAREN { e }
 
 value:
     v = INT_LITERAL { Ast.Int (Int64.to_int v) }
   | x = IDENT { get_ident x }
   | b = bool { b }
+  | t = tuple {
+      match t with
+      | Ast.Tuple [e] -> e
+      | Ast.Tuple _ -> t
+      }
+  // | LPAREN e = expr RPAREN { e }
+
+tuple:
+  | LPAREN l = separated_list(COMMA, expr) RPAREN { Ast.Tuple l}
+
 
 bool:
   | TRUE { Ast.Bool true }
@@ -98,8 +110,10 @@ mul_ops:
 
 // TODO: maybe make lambdas take one argument only and use tuples if necessary?
 lambda:
-    BACKSLASH i = ident RARROW e = expr { Ast.Fn (i,e)}
+  // | BACKSLASH t = tuple RARROW e = expr { t }
+  | BACKSLASH i = ident RARROW e = expr { Ast.Fn (i,e)}
     // BACKSLASH i = ident* RARROW e = expr {Ast.Lambda (i, e)}
 
 ident:
+
     i = IDENT { Ast.Ident i}
