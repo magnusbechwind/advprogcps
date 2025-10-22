@@ -18,7 +18,6 @@ end
 type decl = ident * expr
 [@@deriving show]
 
-(* TODO: Better name than answer? eval_res? *)
 type answer =
   | IntVal of int 
   | BoolVal of bool
@@ -30,7 +29,13 @@ and
  env = answer Env.t 
 [@@deriving show]
 
+let cmp_answer l r = match (l, r) with
+ | IntVal(l), IntVal(r) -> l = r
+ | BoolVal(l), BoolVal(r) -> l = r
+ |  _,_ -> raise @@ TypeMismatch ("Expected comparable types but found " ^ show_answer l ^ " and " ^ show_answer r)
+
 let int_of_val x = match x with | IntVal i -> i | _ -> raise @@ TypeMismatch ("Expected Int but fould" ^ show_answer x)
+
 let int_bin_fun_of_op op = match op with
 | Add -> (+)
 | Sub -> (-)
@@ -112,7 +117,7 @@ let rec eval (env: env) (expr: expr) =
     | _ -> raise @@ TypeMismatch ("Expected Tuple but found" ^ show_answer answer)
   and evalt2 env expr = 
     begin match evalt env expr with 
-    | l :: r :: [] -> (int_of_val l, int_of_val r)
+    | l :: r :: [] -> (l, r)
       | _ -> raise @@ TypeMismatch ("Expected Tuple of two elements but found")
     end
   and evalb env expr = 
@@ -126,10 +131,20 @@ let rec eval (env: env) (expr: expr) =
     | Add | Sub | Mul | Div ->
       let f = int_bin_fun_of_op op in
       let (l, r) =  evalt2 env arg_expr in
-      IntVal (f l r)
+      IntVal (f (int_of_val l) (int_of_val r))
 
     | Eq ->
       let (l, r) = evalt2 env arg_expr in
-      BoolVal (l = r)
+      BoolVal (cmp_answer l r)
 
     | _ -> raise @@ UnsupportedOp ("Unsupported primop: " ^ show_op op)
+
+
+let interp expr =
+  let env = Env.empty in 
+  let answer = eval env expr in
+  
+  match answer with 
+
+  | IntVal(i) -> Some(i)
+  | _ -> None
