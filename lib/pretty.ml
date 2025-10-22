@@ -56,9 +56,9 @@ let rec expr_to_tree e =
     | Fn (ident, expr) ->
       PBox.tree (make_keyword_line "Fn") [PBox.tree (make_info_node_line "Arg") [ident_to_tree ident]; PBox.tree (make_info_node_line "Body") [expr_to_tree expr]]
     | Tuple exprs ->
-      let f acc x =
-        expr_to_tree x :: acc in
-      PBox.tree (make_keyword_line "Tuple") (List.fold_left f [] exprs)
+      let f x =
+        expr_to_tree x in
+      PBox.tree (make_keyword_line "Tuple") (List.map f exprs)
     | _ -> raise (Ast.Todo "missing cases in expr_to_tree")
 
 let program_to_tree prog = 

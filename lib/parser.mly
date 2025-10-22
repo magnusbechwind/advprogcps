@@ -1,24 +1,21 @@
 %{
   let get_ident id = Ast.Var (Ast.Ident id)
 
-  let rec curry' (expr: Ast.expr) (acc: Ast.expr list) : (Ast.expr * Ast.expr list) =
+  let rec uncurry' (expr: Ast.expr) (acc: Ast.expr list) : (Ast.expr * Ast.expr list) =
     begin match expr with
       Ast.App (e1, e2) ->
         begin match e1 with
           Ast.App (e3,e4) ->
-            curry' e3 (e4 :: e2 :: acc)
+            uncurry' e3 (e4 :: e2 :: acc)
           | _ -> e1, List.rev (e2 :: acc)
           end
       | _ -> (expr, acc)
       end
   
-  let rec curry expr =
-    let (app,tpl) = curry' expr [] in
+  let rec uncurry expr =
+    let (app,tpl) = uncurry' expr [] in
     let tup = if List.length tpl == 1 then List.hd tpl else Ast.Tuple tpl
     in Ast.App (app, tup)
-
-  let curry_tuple (Ast.Tuple tpl) : Ast.expr =
-    failwith "todo"
 
 %}
 
@@ -59,22 +56,22 @@ expr:
 
 // + before *
 expr_add:
-    e1 = expr_add op = add_ops e2 = expr_mul { Ast.App (Ast.Primop op, Ast.Tuple [e2; e1]) }
+    e1 = expr_add op = add_ops e2 = expr_mul { Ast.App (Ast.Primop op, Ast.Tuple [e1; e2]) }
   | e = expr_mul { e }
 
 // * before application
 expr_mul:
-    e1 = expr_mul op = mul_ops e2 = expr_app { Ast.App (Ast.Primop op, Ast.Tuple [e2; e1]) }
+    e1 = expr_mul op = mul_ops e2 = expr_app { Ast.App (Ast.Primop op, Ast.Tuple [e1; e2]) }
   | e = expr_app { e }
 
 // app before constants or ()
 expr_app:
-  e1 = expr_curry e2 = expr_val { curry (Ast.App(e1, e2))}
-| e = expr_val { e 
-}
+  e1 = expr_app e2 = expr_val { (Ast.App(e1, e2))}
+| e = expr_val { e }
 
-expr_curry:
-  e1 = expr_curry e2 = expr_val {Ast.App (e1, e2)}
+// assume that these will be removed
+expr_uncurry:
+  e1 = expr_uncurry e2 = expr_val {Ast.App (e1, e2)}
 | e = expr_val { e }
 
 // '(' expr ')' recurses back to the first rule

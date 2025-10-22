@@ -1,7 +1,6 @@
 open Ast
 open Cps
 
-type loc = string
 type answer = int
 
 and dval =

@@ -11,7 +11,7 @@ let fresh_cont =
   fun _: (Ast.ident) ->
     let n = !i in i := n + 1; Ast.Ident ("k" ^ (string_of_int n))
 
-let rec f_l tpl (c: Cps.value list -> Cps.cexpr) =
+let rec tuple_cps tpl (c: Cps.value list -> Cps.cexpr) =
   let rec g r (w: Cps.value list) =
     match r with
       t :: ts -> to_cps t (fun v -> g ts (v :: w))
@@ -27,7 +27,7 @@ and to_cps (exp: Ast.expr) (c: Cps.value -> Cps.cexpr) =
   | Ast.Tuple tpl -> 
     let x = fresh_cont () in
     let lambda a = Cps.Tuple ( (List.map (fun v -> (v, 0)) a, x, c (Cps.Var x))) in
-    f_l tpl lambda
+    tuple_cps tpl lambda
   | Ast.Select (i, e) -> 
     let w = fresh_cont() in
     let select = fun v -> Cps.Select (i, v, w, c (Cps.Var w)) in
@@ -41,7 +41,7 @@ and to_cps (exp: Ast.expr) (c: Cps.value -> Cps.cexpr) =
 
   | Ast.App (Ast.Primop i, Ast.Tuple tpl) ->
     let w = fresh_cont () in
-    f_l tpl (fun a -> Cps.Primop (i, a, [w], [c (Cps.Var w)]))
+    tuple_cps tpl (fun a -> Cps.Primop (i, a, [w], [c (Cps.Var w)]))
   | Ast.App (Ast.Primop i, e) ->
     let w = fresh_cont () in
     to_cps e (fun v -> Cps.Primop (i, [v], [w], [c (Cps.Var w)]))

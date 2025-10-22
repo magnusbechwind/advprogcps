@@ -46,13 +46,13 @@ and cps_to_tree cexp =
       [ PBox.tree (make_keyword_line "Fields") (List.fold_left field_ids [] fields ); make_keyword_line id; cps_to_tree cexp]
   | Cps.Select (_, _, Ast.Ident _, _) -> failwith "cps_to_tree select todo"
   | Cps.Primop (op, vals, ids, cexps) ->
-    let valtree = List.fold_left (fun acc x -> value_to_tree x :: acc) [] vals in
-    let idtree = List.fold_left (fun acc x -> ident_to_tree x :: acc) [] ids in
-    let cexptree = List.fold_left (fun acc x -> cps_to_tree x :: acc) [] cexps in
+    let valtree = List.map (fun x -> value_to_tree x) vals in
+    let idtree = List.map (fun x -> ident_to_tree x) ids in
+    let cexptree = List.map (fun x -> cps_to_tree x) cexps in
     PBox.tree (make_keyword_line "Primop") (Pretty.op_to_tree op :: valtree @ idtree @ cexptree)
   | _ -> failwith "missing cases in cps_to_tree"
 
-let rec value_repr = function
+and value_repr = function
 | Cps.Var (Ast.Ident v) -> v
 | Cps.Int i -> string_of_int i
 | Cps.Bool b -> string_of_bool b
