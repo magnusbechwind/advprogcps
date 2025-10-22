@@ -5,3 +5,6 @@
 - Lexer/Parser (HC)
 - 
 
+
+## Generelt
+- Pænere / mere brugbare exceptions
