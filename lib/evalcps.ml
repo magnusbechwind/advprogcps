@@ -1,74 +1,83 @@
-open Ast
-open Cps
+module StrMap = Map.Make(String)
 
-type answer = int
+(* type answer = int *)
 
-and dval =
-  Tuple of dval list * int
+type dval =
+Tuple of dval list * int
 | Int of int
 | Bool of bool
-| Fun of (dval list -> answer)
+| Fun of dval_fun
+
+and dval_fun = dval list -> dval
 
 type env = Ast.ident -> dval
 
-type denotation = (env -> answer)
-
-let dv env cval =
-  match cval with
+let dv env = function
     Cps.Int i -> Int i
   | Cps.Bool b -> Bool b
   | Cps.Var v -> env v
 
 let bind (env: env) (v: Ast.ident) d =
-  fun w -> if v = w then d else env w
+  Printf.printf "bound %s\n" (Prettycps.ident_str v); 
+  fun w -> Printf.printf "bind lookup %s %s\n" (Prettycps.ident_str v) (Prettycps.ident_str w); if v = w then d else env w
 
 let rec bindn (env: env) vl dl: env = 
   match (vl, dl) with
   (v::vl, d::dl) ->
   bindn(bind env v d) vl dl
 | ([], []) -> env
-| _ -> failwith "bindn illegael argument"
+| _ -> failwith "bindn illegal argument"
 
-let field (Ast.Tuple tpl) i = List.nth tpl i
+let field i = function
+| Ast.Tuple tpl -> List.nth tpl i
+| _ -> failwith "only tuples should be reachable for field"
 
-let overflow (n: unit -> int) (c: dval list -> answer) =
-  if (n() >= min_int && n() <= max_int) then c [Int (n())] else failwith "lol"
-
-let evalop = function
+let evalarith = function
 | Ast.Add -> (+)
 | Ast.Sub -> (-)
 | Ast.Mul -> ( * )
 | Ast.Div -> (/)
-| _ -> failwith "todo evalprim"
+| _ -> failwith "unreachable evalarith"
 
-let evalprim' op [Int i; Int j] [c] : answer = 
-  c [(evalop op i j)]
+let env0 : (Ast.ident -> dval) = fun v -> Printf.printf "Failed: %s\n" (Prettycps.ident_str (v)); failwith "undefined"
 
-(* let evalprim' _ _ _ = failwith "something wrong" *)
+let val_to_int env = function
+| Cps.Var v ->
+  begin match env v with
+  | Int i -> i
+  | _ -> failwith "unreachable"
+  end
+| Cps.Int i -> i
+| Cps.Bool b -> (if b then 1 else 0)
+
+let rec ev (env: env) = function
+| Cps.Halt v -> begin match v with
+  | Cps.Var v -> env v
+  | Cps.Int i -> Int i
+  | Cps.Bool b -> Bool b
+end
+| Cps.App (f, vl) ->
+  List.iter (fun x -> Printf.printf "%s :) " (Prettycps.value_repr x)) vl; print_endline "";
+
+  begin match dv env f with
+  | Fun g -> g (List.map (dv env) vl)
+  | _ -> failwith "f needs to be a function symbol"
+  end
+| Cps.Primop (p, [a;b], [id], [c]) ->
+  let i = val_to_int env a in
+  let j = val_to_int env b in
+  let op = evalarith p in
+  let env = bind env id (Int (op i j)) in
+  ev env c
+| Cps.Fix (funs,c) ->
+  let rec bindargs r1 (_,vl,b) =
+    Printf.printf "%s\n" (List.fold_left (fun acc x -> acc ^ " " ^ Prettycps.ident_str x) "" vl);
+    Fun (fun al ->
+      ev (bindn (updateenv r1) vl al) b)
+  and updateenv r =
+    bindn r (List.map ((fun (f,_,_) -> Printf.printf "f: %s\n" (Prettycps.ident_str f); f)) funs) (List.map (bindargs r) funs) in
+  ev (updateenv env) c
+| e -> Printf.printf "\ne: %s\n" (Prettycps.cps_ast_repr e);failwith "e"
 
 
-let evalprim = function
-| (Ast.Add, [Int i; Int j], [c]) -> overflow (fun () -> i + j) c
-| (Ast.Sub, [Int i; Int j], [c]) -> overflow (fun () -> i - j) c
-| (Ast.Mul, [Int i; Int j], [c]) -> overflow (fun () -> i * j) c
-| (Ast.Div, [Int i; Int j], [c]) -> overflow (fun () -> i / j) c
-| _ -> failwith "todo evalprim"
-
-let rec e cexp (env: env) =
-  match cexp with
-    Cps.App (f, vl) ->
-      let Fun g = dv env f in
-        g (List.map (dv env) vl) 
-  | Cps.Primop (p, vl, wl, el) ->
-    let l1 = List.map (dv env) vl in
-    let l2 = (List.map (fun e_ al -> e e_ (bindn env wl al)) el) in
-    (* evalprim' p l1 l2 *)
-    evalprim (p, l1, l2)
-  | Cps.Fix _ -> failwith "eval fix"
-  | Cps.Halt -> failwith "eval halt"
-  | _ -> failwith "todo e"
-      
-let env0 = fun _ -> failwith "undefined"
-
-let eval vl e_ dl = e e_ (bindn env0 vl dl)
-  (* let eval vars cexp dvals  *)
+let eval vl e_ dl = ev (bindn env0 vl dl) e_

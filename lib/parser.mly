@@ -1,22 +1,5 @@
 %{
   let get_ident id = Ast.Var (Ast.Ident id)
-
-  let rec uncurry' (expr: Ast.expr) (acc: Ast.expr list) : (Ast.expr * Ast.expr list) =
-    begin match expr with
-      Ast.App (e1, e2) ->
-        begin match e1 with
-          Ast.App (e3,e4) ->
-            uncurry' e3 (e4 :: e2 :: acc)
-          | _ -> e1, List.rev (e2 :: acc)
-          end
-      | _ -> (expr, acc)
-      end
-  
-  let rec uncurry expr =
-    let (app,tpl) = uncurry' expr [] in
-    let tup = if List.length tpl == 1 then List.hd tpl else Ast.Tuple tpl
-    in Ast.App (app, tup)
-
 %}
 
 %token EOF
@@ -44,7 +27,7 @@
 
 prog:
     e = expr EOF { Some e }
-  | e = EOF { None }
+  | EOF { None }
 
 // each expr_* encodes precedence levels of the particular operations
 expr:
@@ -69,11 +52,6 @@ expr_app:
   e1 = expr_app e2 = expr_val { (Ast.App(e1, e2))}
 | e = expr_val { e }
 
-// assume that these will be removed
-expr_uncurry:
-  e1 = expr_uncurry e2 = expr_val {Ast.App (e1, e2)}
-| e = expr_val { e }
-
 // '(' expr ')' recurses back to the first rule
 expr_val:
     v = value { v }
@@ -86,6 +64,7 @@ value:
       match t with
       | Ast.Tuple [e] -> e
       | Ast.Tuple _ -> t
+      | _ -> failwith "unreachable"
       }
   // | LPAREN e = expr RPAREN { e }
 
