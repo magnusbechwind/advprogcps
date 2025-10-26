@@ -41,5 +41,7 @@ rule token = parse
 
 (* numbers stuff *)
 | ['1'-'9']['0'-'9']* as num { INT_LITERAL (Int64.of_string num) }
+| '0' { INT_LITERAL (Int64.zero) }
+| ['0'-'9']['0'-'9']+  { failwith "cannot have leading zeroes" }
 
 | ['a'-'z''A'-'Z']['a'-'z''A'-'Z''_']* as id { IDENT id }

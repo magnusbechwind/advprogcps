@@ -18,8 +18,10 @@ let dv env = function
   | Cps.Var v -> env v
 
 let bind (env: env) (v: Ast.ident) d =
-  Printf.printf "bound %s\n" (Prettycps.ident_str v); 
-  fun w -> Printf.printf "bind lookup %s %s\n" (Prettycps.ident_str v) (Prettycps.ident_str w); if v = w then d else env w
+  (* Printf.printf "bound %s\n" (Prettycps.ident_str v);  *)
+  fun w ->
+    (* Printf.printf "bind lookup %s %s\n" (Prettycps.ident_str v) (Prettycps.ident_str w); *)
+    if v = w then d else env w
 
 let rec bindn (env: env) vl dl: env = 
   match (vl, dl) with
@@ -32,14 +34,14 @@ let field i = function
 | Ast.Tuple tpl -> List.nth tpl i
 | _ -> failwith "only tuples should be reachable for field"
 
-let evalarith = function
+let evalalarith = function
 | Ast.Add -> (+)
 | Ast.Sub -> (-)
 | Ast.Mul -> ( * )
 | Ast.Div -> (/)
-| _ -> failwith "unreachable evalarith"
+| _ -> failwith "unreachable evalalarith"
 
-let env0 : (Ast.ident -> dval) = fun v -> Printf.printf "Failed: %s\n" (Prettycps.ident_str (v)); failwith "undefined"
+let env0 : (Ast.ident -> dval) = fun v -> Printf.printf "Variable %s not found!\n" (Prettycps.ident_str (v)); failwith "undefined"
 
 let val_to_int env = function
 | Cps.Var v ->
@@ -50,15 +52,13 @@ let val_to_int env = function
 | Cps.Int i -> i
 | Cps.Bool b -> (if b then 1 else 0)
 
-let rec ev (env: env) = function
+let rec eval' (env: env) = function
 | Cps.Halt v -> begin match v with
   | Cps.Var v -> env v
   | Cps.Int i -> Int i
   | Cps.Bool b -> Bool b
 end
 | Cps.App (f, vl) ->
-  List.iter (fun x -> Printf.printf "%s :) " (Prettycps.value_repr x)) vl; print_endline "";
-
   begin match dv env f with
   | Fun g -> g (List.map (dv env) vl)
   | _ -> failwith "f needs to be a function symbol"
@@ -66,18 +66,17 @@ end
 | Cps.Primop (p, [a;b], [id], [c]) ->
   let i = val_to_int env a in
   let j = val_to_int env b in
-  let op = evalarith p in
+  let op = evalalarith p in
   let env = bind env id (Int (op i j)) in
-  ev env c
+  eval' env c
 | Cps.Fix (funs,c) ->
   let rec bindargs r1 (_,vl,b) =
-    Printf.printf "%s\n" (List.fold_left (fun acc x -> acc ^ " " ^ Prettycps.ident_str x) "" vl);
     Fun (fun al ->
-      ev (bindn (updateenv r1) vl al) b)
+      eval' (bindn (updateenv r1) vl al) b)
   and updateenv r =
-    bindn r (List.map ((fun (f,_,_) -> Printf.printf "f: %s\n" (Prettycps.ident_str f); f)) funs) (List.map (bindargs r) funs) in
-  ev (updateenv env) c
+    bindn r (List.map ((fun (f,_,_) -> f)) funs) (List.map (bindargs r) funs) in
+  eval' (updateenv env) c
 | e -> Printf.printf "\ne: %s\n" (Prettycps.cps_ast_repr e);failwith "e"
 
 
-let eval vl e_ dl = ev (bindn env0 vl dl) e_
+let eval vl e_ dl = eval' (bindn env0 vl dl) e_

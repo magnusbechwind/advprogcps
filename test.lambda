@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 let f = \x -> 2*x+1 in f (a+b) * f (c+d)
+=======
+if true then 1 else 023
+>>>>>>> b68637b (CPS evaluation appears to have been fixed =)))))))
