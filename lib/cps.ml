@@ -6,9 +6,10 @@ type value =
 | Bool of bool
 
 type cexpr =
-  Halt
+  Halt of value
 | App of value * value list
 | Fix of (ident * ident list * cexpr) list * cexpr
 | Tuple of (value * int) list * ident * cexpr
 | Select of int * value * ident * cexpr
 | Primop of op * value list * ident list * cexpr list
+

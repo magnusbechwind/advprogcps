@@ -1,12 +1,13 @@
-let fresh_var =
+let fresh arg =
   let i = ref 0 in
-  fun _: (Ast.ident) ->
-    let n = !i in i := n + 1; Ast.Ident ("v" ^ (string_of_int n))
+    fun _: (Ast.ident) ->
+      let n = !i in i := n + 1; Ast.Ident (arg ^ (string_of_int n))
 
-let fresh_cont =
-  let i = ref 0 in
-  fun _: (Ast.ident) ->
-    let n = !i in i := n + 1; Ast.Ident ("k" ^ (string_of_int n))
+let fresh_fun = fresh "f"
+
+let fresh_var = fresh "v"
+
+let fresh_cont = fresh "k"
 
 let rec tuple_cps tpl (c: Cps.value list -> Cps.cexpr) =
   let rec g r (w: Cps.value list) =
@@ -30,8 +31,8 @@ and to_cps (exp: Ast.expr) (c: Cps.value -> Cps.cexpr) =
     let select = fun v -> Cps.Select (i, v, w, c (Cps.Var w)) in
     to_cps e select
   | Ast.Fn (v,e) ->
-    let f = fresh_cont () in
-    let k = fresh_var () in
+    let f = fresh_fun () in
+    let k = fresh_cont () in
     let ap z = Cps.App(Cps.Var k, [z]) in
     Cps.Fix ([f, [v; k], to_cps e ap], c (Cps.Var f))
       (* We need to distinguish between multiple cases for the first argument to App *)
@@ -43,8 +44,8 @@ and to_cps (exp: Ast.expr) (c: Cps.value -> Cps.cexpr) =
     let w = fresh_cont () in
     to_cps e (fun v -> Cps.Primop (i, [v], [w], [c (Cps.Var w)]))
   | Ast.App (f,e) ->
-    let r = fresh_var () in
-    let x = fresh_cont () in
+    let r = fresh_cont () in
+    let x = fresh_var () in
     let lambda = fun f_ ->
       let inner = fun e_ -> Cps.App(f_, [e_; Cps.Var r]) in
       to_cps e inner in
@@ -52,4 +53,4 @@ and to_cps (exp: Ast.expr) (c: Cps.value -> Cps.cexpr) =
   | _ -> failwith "Missing cases in to_cps"
 
 let cps exp =
-  to_cps exp (fun _ -> Halt)
+  to_cps exp (fun v -> Halt v)
