@@ -1,2 +1,1 @@
-
-let f = \x -> 2*x in f 2
+if true then 1 else 023

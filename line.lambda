@@ -1,1 +1,5 @@
+let a = 2 in
+let b = 3 in
+let c = 2+1 in
+let d = 51 in
 let f = \x -> 2 * x + 1 in f(a+b) * f(c+d)
