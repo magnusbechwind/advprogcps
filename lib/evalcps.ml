@@ -31,7 +31,7 @@ let rec bindn (env: env) vl dl: env =
 | _ -> failwith "bindn illegal argument"
 
 let field i = function
-| Ast.Tuple tpl -> List.nth tpl i
+| Tuple (tpl, _) -> List.nth tpl i
 | _ -> failwith "only tuples should be reachable for field"
 
 let evalalarith = function
@@ -57,7 +57,7 @@ let rec eval' (env: env) = function
   | Cps.Var v -> env v
   | Cps.Int i -> Int i
   | Cps.Bool b -> Bool b
-end
+  end
 | Cps.App (f, vl) ->
   begin match dv env f with
   | Fun g -> g (List.map (dv env) vl)
@@ -76,7 +76,14 @@ end
   and updateenv r =
     bindn r (List.map ((fun (f,_,_) -> f)) funs) (List.map (bindargs r) funs) in
   eval' (updateenv env) c
-| e -> Printf.printf "\ne: %s\n" (Prettycps.cps_ast_repr e);failwith "e"
+| Cps.Tuple (vl, id, c) ->
+  let vl' = Tuple (List.map (fun (v, i) -> dv env v) vl, List.length vl) in
+  let env' = bind env id vl' in
+  eval' env' c
+| Cps.Select (i, v, id, c) ->
+  let v' = field i (dv env v) in
+  let env' = bind env id v' in
+  eval' env' c
 
 
 let eval vl e_ dl = eval' (bindn env0 vl dl) e_
