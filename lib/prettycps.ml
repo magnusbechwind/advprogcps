@@ -43,14 +43,19 @@ and cps_to_tree cexp =
   | Cps.Tuple (fields, (Ast.Ident id), cexp) ->
     let field_ids acc (v,i) = [make_fieldname_line (string_of_int i); value_to_tree v] @ acc in
       PBox.tree (make_keyword_line "Tuple")
-      [ PBox.tree (make_keyword_line "Fields") (List.fold_left field_ids [] fields ); make_keyword_line id; cps_to_tree cexp]
-  | Cps.Select (_, _, Ast.Ident _, _) -> failwith "cps_to_tree select todo"
+      [ PBox.tree (make_keyword_line "Fields") (List.fold_left field_ids [] fields); make_keyword_line id; cps_to_tree cexp]
+  | Cps.Select (i, v, Ast.Ident id, cexp) ->
+      PBox.tree (make_keyword_line "Select")
+      [PBox.hlist ~bars:false [make_info_node_line "Index: "; PBox.line (string_of_int i)];
+        PBox.hlist ~bars:false [make_info_node_line "Tuple: "; value_to_tree v];
+        PBox.hlist ~bars:false [make_keyword_line id];
+        PBox.hlist ~bars:false [make_info_node_line "Cont.: "; cps_to_tree cexp]
+      ]     
   | Cps.Primop (op, vals, ids, cexps) ->
     let valtree = List.map (fun x -> value_to_tree x) vals in
     let idtree = List.map (fun x -> ident_to_tree x) ids in
     let cexptree = List.map (fun x -> cps_to_tree x) cexps in
     PBox.tree (make_keyword_line "Primop") (Pretty.op_to_tree op :: valtree @ idtree @ cexptree)
-  | _ -> failwith "missing cases in cps_to_tree"
 
 and value_repr = function
 | Cps.Var (Ast.Ident v) -> v
@@ -72,7 +77,8 @@ and cps_ast_repr = function
     " in\n(fix end)" ^ cps_ast_repr cexp
 | Cps.Tuple (vals, id, cexp) ->
   "(tuple)"^"let " ^ ident_str id ^ " = (" ^ value_repr (fst (List.hd vals)) ^ List.fold_left (fun acc (x,_) -> ", " ^ value_repr x ^ acc) "" (List.tl vals) ^ ") in \n" ^ cps_ast_repr cexp
-| Cps.Select _ -> failwith "Select not implemented (in cps_ast_repr)"
+| Cps.Select (i, v, id, cexp) -> 
+    "(select)" ^ "let " ^ ident_str id ^ " = # " ^ string_of_int i ^ " " ^ value_repr v ^ " in\n" ^ cps_ast_repr cexp
 | Cps.Primop (op, [a;b], [id], cexps) -> 
   let op = match op with
   | Ast.Add -> "+"

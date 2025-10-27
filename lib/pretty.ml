@@ -59,6 +59,10 @@ let rec expr_to_tree e =
       let f x =
         expr_to_tree x in
       PBox.tree (make_keyword_line "Tuple") (List.map f exprs)
+    | Select (i, expr) ->
+      PBox.tree (make_keyword_line "Select")
+      [PBox.hlist ~bars:false [make_info_node_line "Index: "; PBox.line (string_of_int i)];
+        PBox.hlist ~bars:false [make_info_node_line "Expr: "; expr_to_tree expr]]
     | _ -> raise (Ast.Todo "missing cases in expr_to_tree")
 
 let program_to_tree prog = 
