@@ -22,6 +22,7 @@
 %token EOF
 %token <string> IDENT
 %token IF THEN ELSE
+%token SELECT
 // %token BOOL
 %token TRUE FALSE
 %token PLUS MINUS MUL DIV
@@ -62,6 +63,11 @@ expr_add:
 // * before application
 expr_mul:
     e1 = expr_mul op = mul_ops e2 = expr_app { Ast.App (Ast.Primop op, Ast.Tuple [e1; e2]) }
+  | e = expr_sel { e }
+
+// select before app
+expr_sel:
+    SELECT i = INT_LITERAL e = expr { Ast.Select (Int64.to_int i, e) }
   | e = expr_app { e }
 
 // app before constants or ()
