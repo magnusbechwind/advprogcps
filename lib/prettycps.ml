@@ -46,11 +46,13 @@ and cps_to_tree cexp =
       [ PBox.tree (make_keyword_line "Fields") (List.fold_left field_ids [] fields); make_keyword_line id; cps_to_tree cexp]
   | Cps.Select (_, _, Ast.Ident _, _) -> failwith "cps_to_tree select todo"
   | Cps.Primop (op, vals, ids, cexps) ->
-    let valtree = List.map value_to_tree vals in
-    let idtree = List.map ident_to_tree ids in
-    let cexptree = List.map cps_to_tree cexps in
-    PBox.tree (make_keyword_line "Primop") (Pretty.op_to_tree op :: valtree @ idtree @ cexptree)
-  (* | _ -> failwith "missing cases in cps_to_tree" *)
+    let valtree = PBox.hlist ~bars:false (make_info_node_line "Value " :: List.map value_to_tree vals) in
+    let idtree = PBox.tree (make_info_node_line "Idents") (List.map ident_to_tree ids) in
+    let cexptree = PBox.tree (make_info_node_line "Continuations") (List.map cps_to_tree cexps) in
+    PBox.tree (make_keyword_line "Primop") (PBox.hlist ~bars:false [make_keyword_line "Op "; Pretty.op_to_tree op] :: [valtree; idtree; cexptree])
+  | Cps.Switch (value, cexps) ->
+    PBox.tree (make_keyword_line "Switch") (value_to_tree value :: List.map cps_to_tree cexps)
+  | _ -> failwith "missing cases in cps_to_tree"
 
 and value_repr = function
 | Cps.Var (Ast.Ident v) -> v
@@ -73,13 +75,15 @@ and cps_ast_repr = function
 | Cps.Tuple (vals, id, cexp) ->
   "(tuple)"^"let " ^ ident_str id ^ " = (" ^ value_repr (fst (List.hd vals)) ^ List.fold_left (fun acc (x,_) -> ", " ^ value_repr x ^ acc) "" (List.tl vals) ^ ") in \n" ^ cps_ast_repr cexp
 | Cps.Select _ -> failwith "Select not implemented (in cps_ast_repr)"
-| Cps.Primop (op, [a;b], [id], cexps) -> 
-  let op = match op with
-  | Ast.Add -> "+"
-  | Ast.Sub -> "-"
-  | Ast.Mul -> "*"
-  | Ast.Div -> "/"
-  | _ -> failwith "unreachable"
+| Cps.Primop (op, vals, ids, cexps) -> 
+  let op = Pretty.str_of_op op
 in
+  begin match vals, ids with
+  | [a;b],[id] ->
   "(primop)"^"let " ^ ident_str id ^ " = " ^ value_repr a ^ " " ^ op ^ " " ^ value_repr b ^ "" ^ List.fold_left (fun acc x -> " in\n" ^ cps_ast_repr x ^ acc ) "" cexps
-  | _ -> failwith "abc"
+  | vals,ids ->
+  "(primop)"^"let " ^ (List.fold_left (fun acc x -> acc ^ ident_str x) "" ids) ^ " = " ^ op ^ " " ^ (List.fold_left (fun acc x -> acc ^ value_repr x ^ ";" ) "" vals) ^ List.fold_left (fun acc x -> " in\n" ^ cps_ast_repr x ^acc) "" cexps
+  end 
+  | Cps.Switch (value, cexps) -> "(switch)"^value_repr value ^ " [" ^ (List.fold_left (fun acc x -> acc ^ (cps_ast_repr x) ^ "; ") "" cexps) ^ "]\n"
+
+  | e -> PrintBox_text.output stdout (cps_to_tree e); print_endline "\n"; failwith "missing case in cps_ast_repr"

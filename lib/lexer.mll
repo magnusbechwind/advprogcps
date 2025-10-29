@@ -25,7 +25,9 @@ rule token = parse
 | '-' { MINUS }
 | '*' { MUL }
 | '/' { DIV }
-| '=' { EQ }
+| '=' { ASGN }
+| "==" { EQ }
+| "<" { LT }
 | "call/cc" { CALLCC }
 | "throw" { THROW }
 | "shift" { SHIFT }

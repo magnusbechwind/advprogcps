@@ -1,1 +1,1 @@
-if true then 1 else 023
+let x = \a -> a + 2 in x 2

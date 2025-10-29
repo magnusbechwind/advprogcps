@@ -22,21 +22,30 @@ let make_info_node_line info = PBox.line_with_style info_node_style info
 
 let ident_to_tree (Ident(ident)) = make_ident_line ("Ident " ^ ident)
 
-let op_to_tree op =
-  match op with
-    | Ast.Add -> make_keyword_line "Add"
-    | Ast.Sub -> make_keyword_line "Sub"
-    | Ast.Mul -> make_keyword_line "Mul"
-    | Ast.Div -> make_keyword_line "Div"
-    | _ -> raise (Ast.Todo "op_to_tree is missing a case")
 
     let str_of_op op = 
   match op with
     | Ast.Add -> "Add"
-    | Ast.Sub -> "Sub"
-    | Ast.Mul -> "Mul"
-    | Ast.Div -> "Div"
-    | _ -> raise (Ast.Todo "str_of_op  is missing a case")
+    | Sub -> "Sub"
+    | Mul -> "Mul"
+    | Div -> "Div"
+    | Callcc -> "Call/CC"
+    | Throw -> "Throw"
+    | Reset -> "Reset"
+    | Shift -> "Shift"
+    | Eq -> "Eq"
+    | Lt -> "Lt"
+    (* | _ -> raise (Ast.Todo "str_of_op  is missing a case") *)
+
+let op_to_tree op =
+  make_keyword_line (str_of_op op)
+  (* match op with
+    | Ast.Add -> make_keyword_line "Add"
+    | Ast.Sub -> make_keyword_line "Sub"
+    | Ast.Mul -> make_keyword_line "Mul"
+    | Ast.Div -> make_keyword_line "Div"
+    
+    | _ -> raise (Ast.Todo "op_to_tree is missing a case") *)
 
 let rec expr_to_tree e =
   match e with 
