@@ -6,7 +6,7 @@ exception Todo of string (* for incomplete match cases (the warnings get annoyin
 
 type op =
   (* arithmetic operators*) | Add | Sub | Mul | Div
-  (* logical operators *) |  Eq
+  (* logical operators *) | Eq | Lt
   (* first-class continuations (todo) *) | Callcc | Throw | Reset | Shift
   [@@deriving show]
 

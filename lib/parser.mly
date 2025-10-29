@@ -9,7 +9,7 @@
 // %token BOOL
 %token TRUE FALSE
 %token PLUS MINUS MUL DIV
-%token EQ
+%token EQ ASGN LT
 %token LET IN
 %token BACKSLASH
 // %token INT
@@ -32,11 +32,12 @@ prog:
 
 // each expr_* encodes precedence levels of the particular operations
 expr:
-  | LET ident = IDENT EQ e1 = expr IN e2 = expr { Ast.App (Ast.Fn (Ast.Ident ident, e2), e1) }
+  | LET id = ident ASGN e1 = expr IN e2 = expr { Ast.App (Ast.Fn (id, e2), e1) }
   // {Let (Ast.Ident ident, e1, e2)}
   | IF e1 = expr THEN e2 = expr ELSE e3 = expr {Ast.IfEl (e1, e2, e3)}
   | e = expr_add { e }
   | l = lambda { l }
+  | CALLCC k = ident IN e = expr { Ast.App (Ast.Primop Callcc, Ast.Fn(k, e)) }
 
 // + before *
 expr_add:
@@ -45,15 +46,22 @@ expr_add:
 
 // * before application
 expr_mul:
-    e1 = expr_mul op = mul_ops e2 = expr_sel { Ast.App (Ast.Primop op, Ast.Tuple [e1; e2]) }
+    e1 = expr_mul op = mul_ops e2 = expr_cond { Ast.App (Ast.Primop op, Ast.Tuple [e1; e2]) }
+  | e = expr_cond { e }
+
+expr_cond:
+  | e1 = expr_cond cond = conds e2 = expr_sel { Ast.App (Ast.Primop cond, Ast.Tuple [e1;e2]) }
   | e = expr_sel { e }
+
+conds:
+  | EQ { Ast.Eq }
+  | LT { Ast.Lt }
 
 // select before app
 expr_sel:
     SELECT i = INT_LITERAL e = expr_sel { Ast.Select (Int64.to_int i, e) }
   | e = expr_app { e }
 
-// app before constants or ()
 expr_app:
   e1 = expr_app e2 = expr_val { (Ast.App(e1, e2))}
 | e = expr_val { e }

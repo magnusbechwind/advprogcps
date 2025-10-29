@@ -56,7 +56,8 @@ and cps_to_tree cexp =
     let idtree = List.map ident_to_tree ids in
     let cexptree = List.map cps_to_tree cexps in
     PBox.tree (make_keyword_line "Primop") (Pretty.op_to_tree op :: valtree @ idtree @ cexptree)
-  | _ -> failwith "missing cases in cps_to_tree"
+  | Cps.Switch (value, cexps) ->
+    PBox.tree (make_keyword_line "Switch") (value_to_tree value :: List.map cps_to_tree cexps)  | _ -> failwith "missing cases in cps_to_tree"
 
 and value_repr = function
 | Cps.Var (Ast.Ident v) -> v
@@ -80,13 +81,15 @@ and cps_ast_repr = function
   "(tuple)"^"let " ^ ident_str id ^ " = (" ^ value_repr (fst (List.hd vals)) ^ List.fold_left (fun acc (x,_) -> ", " ^ value_repr x ^ acc) "" (List.tl vals) ^ ") in \n" ^ cps_ast_repr cexp
 | Cps.Select (i, v, id, cexp) -> 
     "(select)" ^ "let " ^ ident_str id ^ " = # " ^ string_of_int i ^ " " ^ value_repr v ^ " in\n" ^ cps_ast_repr cexp
-| Cps.Primop (op, [a;b], [id], cexps) -> 
-  let op = match op with
-  | Ast.Add -> "+"
-  | Ast.Sub -> "-"
-  | Ast.Mul -> "*"
-  | Ast.Div -> "/"
-  | _ -> failwith "unreachable"
+| Cps.Primop (op, vals, ids, cexps) -> 
+  let op = Pretty.str_of_op op
 in
+  begin match vals, ids with
+  | [a;b],[id] ->
   "(primop)"^"let " ^ ident_str id ^ " = " ^ value_repr a ^ " " ^ op ^ " " ^ value_repr b ^ "" ^ List.fold_left (fun acc x -> " in\n" ^ cps_ast_repr x ^ acc ) "" cexps
-  | _ -> failwith "abc"
+  | vals,ids ->
+  "(primop)"^"let " ^ (List.fold_left (fun acc x -> acc ^ ident_str x) "" ids) ^ " = " ^ op ^ " " ^ (List.fold_left (fun acc x -> acc ^ value_repr x ^ ";" ) "" vals) ^ List.fold_left (fun acc x -> " in\n" ^ cps_ast_repr x ^acc) "" cexps
+  end 
+  | Cps.Switch (value, cexps) -> "(switch)"^value_repr value ^ " [" ^ (List.fold_left (fun acc x -> acc ^ (cps_ast_repr x) ^ "; ") "" cexps) ^ "]\n"
+
+  | e -> PrintBox_text.output stdout (cps_to_tree e); print_endline "\n"; failwith "missing case in cps_ast_repr"
