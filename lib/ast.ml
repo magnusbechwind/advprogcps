@@ -1,4 +1,7 @@
-type ident = Ident of string
+type ident =
+| Ident of string
+| Wildcard
+
 [@@deriving show]
 
 exception Todo of string (* for incomplete match cases (the warnings get annoying) *)
@@ -8,12 +11,14 @@ type op =
   (* arithmetic operators*) | Add | Sub | Mul | Div
   (* logical operators *) | Eq | Lt
   (* first-class continuations (todo) *) | Callcc | Throw | Reset | Shift
+  (* I/O primitives *) | Print | Read
   [@@deriving show]
 
 type expr =
   | Var of ident
   | Int of int
   | Bool of bool
+  | String of string
   | Fn of ident * expr
   | App of expr * expr
   | Tuple of expr list

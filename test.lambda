@@ -1,13 +1,1 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-let f = \x -> 2*x+1 in f (a+b) * f (c+d)
-=======
-if true then 1 else 023
->>>>>>> b68637b (CPS evaluation appears to have been fixed =)))))))
-=======
-let x = \a -> a + 2 in x 2
->>>>>>> 7517b73 (Added if/else expressions + other stuff that, honestly, I don't remember in detail)
-=======
-let f = \x -> 2*x+1 in f (a+b) * f (c+d)
->>>>>>> 8ad4dea (Merged changes for if/else and select expressions)
+let x = read in print x

@@ -20,8 +20,12 @@ let make_keyword_line name = PBox.line_with_style keyword_style name
 
 let make_info_node_line info = PBox.line_with_style info_node_style info
 
-let ident_to_tree (Ident(ident)) = make_ident_line ("Ident " ^ ident)
+let ident_str = function
+| Ast.Ident v -> v
+| Wildcard -> "Wildcard"
 
+
+let ident_to_tree ident = make_ident_line (ident_str ident)
 
     let str_of_op op = 
   match op with
@@ -35,17 +39,12 @@ let ident_to_tree (Ident(ident)) = make_ident_line ("Ident " ^ ident)
     | Shift -> "Shift"
     | Eq -> "Eq"
     | Lt -> "Lt"
+    | Print -> "Print"
+    | Read -> "Read"
     (* | _ -> raise (Ast.Todo "str_of_op  is missing a case") *)
 
 let op_to_tree op =
   make_keyword_line (str_of_op op)
-  (* match op with
-    | Ast.Add -> make_keyword_line "Add"
-    | Ast.Sub -> make_keyword_line "Sub"
-    | Ast.Mul -> make_keyword_line "Mul"
-    | Ast.Div -> make_keyword_line "Div"
-    
-    | _ -> raise (Ast.Todo "op_to_tree is missing a case") *)
 
 let rec expr_to_tree e =
   match e with 
@@ -72,6 +71,7 @@ let rec expr_to_tree e =
       PBox.tree (make_keyword_line "Select")
       [PBox.hlist ~bars:false [make_info_node_line "Index: "; PBox.line (string_of_int i)];
         PBox.hlist ~bars:false [make_info_node_line "Expr: "; expr_to_tree expr]]
+    | String str -> PBox.tree (make_keyword_line "String") [PBox.line str]
     | _ -> raise (Ast.Todo "missing cases in expr_to_tree")
 
 let program_to_tree prog = 

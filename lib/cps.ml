@@ -4,6 +4,7 @@ type value =
   Var of ident
 | Int of int
 | Bool of bool
+| String of string
 
 type cexpr =
   Halt of value

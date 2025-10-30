@@ -4,6 +4,7 @@
 
 %token EOF
 %token <string> IDENT
+%token <string> STRING
 %token IF THEN ELSE
 %token SELECT
 // %token BOOL
@@ -12,14 +13,14 @@
 %token EQ ASGN LT
 %token LET IN
 %token BACKSLASH
-// %token INT
 %token CALLCC THROW SHIFT RESET
+%token PRINT READ
 %token <int64> INT_LITERAL
 %token LPAREN
 %token RPAREN
 %token UNDERSCORE
 %token RARROW
-%token COMMA
+%token COMMA SEMICOLON
 
 %start prog
 %type <Ast.prog> prog
@@ -35,13 +36,19 @@ expr:
   | LET id = ident ASGN e1 = expr IN e2 = expr { Ast.App (Ast.Fn (id, e2), e1) }
   // {Let (Ast.Ident ident, e1, e2)}
   | IF e1 = expr THEN e2 = expr ELSE e3 = expr {Ast.IfEl (e1, e2, e3)}
-  | e = expr_add { e }
-  | l = lambda { l }
+  | e1 = expr_add SEMICOLON e2 = expr { Ast.App(Ast.Fn(Ast.Wildcard, e2), e1) } 
   | CALLCC k = ident IN e = expr { Ast.App (Ast.Primop Callcc, Ast.Fn(k, e)) }
+  | THROW k = ident e = expr { Ast.App(Ast.Primop Throw, Ast.Fn(k, e))}
+  | RESET e = expr { Ast.App(Ast.Primop Reset, e) }
+  | SHIFT k = ident IN e = expr { Ast.App(Ast.Primop Shift, Ast.Fn(k, e))}
+  | l = lambda { l }
+  | e = expr_add { e }
 
 // + before *
 expr_add:
-    e1 = expr_add op = add_ops e2 = expr_mul { Ast.App (Ast.Primop op, Ast.Tuple [e1; e2]) }
+  | PRINT v = value { Ast.App(Ast.Primop Print, v)}
+  | READ { Ast.App(Ast.Primop Read, Ast.Var Wildcard)}
+  | e1 = expr_add op = add_ops e2 = expr_mul { Ast.App (Ast.Primop op, Ast.Tuple [e1; e2]) }
   | e = expr_mul { e }
 
 // * before application
@@ -74,6 +81,7 @@ value:
     v = INT_LITERAL { Ast.Int (Int64.to_int v) }
   | x = IDENT { get_ident x }
   | b = bool { b }
+  | str = STRING { Ast.String str }
   | t = tuple {
       match t with
       | Ast.Tuple [e] -> e
@@ -84,6 +92,7 @@ value:
 
 tuple:
   | LPAREN l = separated_list(COMMA, expr) RPAREN { Ast.Tuple l}
+
 
 
 bool:
@@ -100,10 +109,8 @@ mul_ops:
 
 // TODO: maybe make lambdas take one argument only and use tuples if necessary?
 lambda:
-  // | BACKSLASH t = tuple RARROW e = expr { t }
-  | BACKSLASH i = ident RARROW e = expr { Ast.Fn (i,e)}
-    // BACKSLASH i = ident* RARROW e = expr {Ast.Lambda (i, e)}
+  | BACKSLASH i = ident RARROW e = expr { Ast.Fn (i,e) }
 
 ident:
-
-    i = IDENT { Ast.Ident i}
+  | UNDERSCORE { Ast.Wildcard }
+  | i = IDENT { Ast.Ident i }

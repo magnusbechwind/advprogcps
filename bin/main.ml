@@ -28,11 +28,13 @@ let () =
     Printf.printf "CPS:\n";
     PrintBox_text.output stdout (Prettycps.cps_to_tree cp);
     Printf.printf "\nCPS AST:\n%s\n" (Prettycps.cps_ast_repr cp);
-    Printf.printf "Result: %s\n" (match Evalcps.eval [] cp [] with
+    let rec evaldval = function
     | Evalcps.Bool b -> string_of_bool b
     | Evalcps.Int i -> string_of_int i
-    | _ -> "something went wrong"
-    );
-    
+    | Evalcps.Fun f -> evaldval (f [])
+    | Evalcps.String str -> str
+    | _ -> "not a value"
+    in
+    Printf.printf "Result: %s\n" (evaldval (Evalcps.eval [] cp []));
     ()
   | _ -> ()

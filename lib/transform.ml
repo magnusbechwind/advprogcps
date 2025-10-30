@@ -21,6 +21,7 @@ and to_cps (exp: Ast.expr) (c: Cps.value -> Cps.cexpr) =
   | Ast.Var v -> c (Cps.Var v)
   | Ast.Int i -> c (Cps.Int i)
   | Ast.Bool b -> c (Cps.Bool b)
+  | Ast.String str -> c (Cps.String str)
   | Ast.Tuple [] -> c (Cps.Int 0)
   | Ast.Tuple tpl -> 
     let x = fresh_cont () in
@@ -41,6 +42,15 @@ and to_cps (exp: Ast.expr) (c: Cps.value -> Cps.cexpr) =
   | Ast.App (Ast.Primop i, Ast.Tuple tpl) ->
     let w = fresh_cont () in
     tuple_cps tpl (fun a -> Cps.Primop (i, a, [w], [c (Cps.Var w)]))
+  | Ast.App(Ast.Primop Callcc, f) ->
+    let k = fresh_cont() in
+    let x = fresh_var() in
+    Cps.Fix([k, [x], c (Cps.Var x)], to_cps f (fun v -> Cps.App(v, [Cps.Var k; Cps.Var k])))
+  | Ast.App(Ast.Primop Throw, e) ->
+    let f = fresh_fun () in
+    let x = fresh_var() in 
+    let j = fresh_var() in
+    to_cps e (fun k -> Cps.Fix([(f, [x;j], Cps.App(k, [Cps.Var x]))], c (Cps.Var f)))
   | Ast.App (Ast.Primop i, e) ->
     let w = fresh_cont () in
     to_cps e (fun v -> Cps.Primop (i, [v], [w], [c (Cps.Var w)]))
