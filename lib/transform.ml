@@ -35,23 +35,35 @@ and to_cps (exp: Ast.expr) (c: Cps.value -> Cps.cexpr) =
     let f = fresh_fun () in
     let k = fresh_cont () in
     let ap z = Cps.App(Cps.Var k, [z]) in
-    Cps.Fix ([f, [v; k], to_cps e ap], c (Cps.Var f))
+    Cps.Fix ([f, [v; k], to_cps e ap, Some "from fn"], c (Cps.Var f))
       (* We need to distinguish between multiple cases for the first argument to App *)
 
   (* | Ast.App (Ast.Primop Eq, Ast.Tuple [a;b]) -> failwith "todo" *)
-  | Ast.App (Ast.Primop i, Ast.Tuple tpl) ->
-    let w = fresh_cont () in
-    tuple_cps tpl (fun a -> Cps.Primop (i, a, [w], [c (Cps.Var w)]))
   | Ast.App(Ast.Primop Callcc, f) ->
     let k = fresh_cont() in
     let x = fresh_var() in
-    Cps.Fix([k, [x], c (Cps.Var x)], to_cps f (fun v -> Cps.App(v, [Cps.Var k; Cps.Var k])))
+
+    Cps.Fix([k, [x], c (Cps.Var x), Some "from calcc"], to_cps f (fun v -> Cps.App(v, [Cps.Var k; Cps.Var k])))
+  (* see https://xavierleroy.org/mpri/2-4/transformations.2up.pdf for implementation details *)
+  | Ast.App(Ast.Primop Throw, Ast.Tuple [k; e]) ->
+    let f = fresh_fun () in
+    let x = fresh_var() in 
+    let j = fresh_var() in
+    let a = to_cps k in
+    let b = to_cps e in
+    a (fun a -> Cps.Fix([(f, [x;j], Cps.App(a, [Cps.Var x]), Some ("help"))], b (fun c -> Cps.App(a, [c]))))
+    (* let c = a (fun va -> b (fun vb -> va vb)) in *)
+    (* c *)
+    (* to_cps e (fun k -> Cps.Fix([(f, [x;j], Cps.App(k, [Cps.Var x]), Some "from throw")], c (Cps.Var f))) *)
   | Ast.App(Ast.Primop Throw, e) ->
     let f = fresh_fun () in
     let x = fresh_var() in 
     let j = fresh_var() in
-    to_cps e (fun k -> Cps.Fix([(f, [x;j], Cps.App(k, [Cps.Var x]))], c (Cps.Var f)))
-  | Ast.App (Ast.Primop i, e) ->
+    to_cps e (fun k -> Cps.Fix([(f, [x;j], Cps.App(k, [Cps.Var x]), Some "from throw")], c (Cps.Var f)))
+  | Ast.App (Ast.Primop i, Ast.Tuple tpl) ->
+    let w = fresh_cont () in
+    tuple_cps tpl (fun a -> Cps.Primop (i, a, [w], [c (Cps.Var w)]))
+    | Ast.App (Ast.Primop i, e) ->
     let w = fresh_cont () in
     to_cps e (fun v -> Cps.Primop (i, [v], [w], [c (Cps.Var w)]))
   | Ast.App (f,e) ->
@@ -60,7 +72,7 @@ and to_cps (exp: Ast.expr) (c: Cps.value -> Cps.cexpr) =
     let lambda = fun f_ ->
       let inner = fun e_ -> Cps.App(f_, [e_; Cps.Var r]) in
       to_cps e inner in
-    Cps.Fix([r, [x], c (Cps.Var x)], to_cps f lambda)
+    Cps.Fix([r, [x], c (Cps.Var x), Some "from app"], to_cps f lambda)
   | Ast.IfEl (cond, e1, e2) ->
     let ifb = fun b -> Cps.Switch (b, [to_cps e1 c; to_cps e2 c]) in
     to_cps cond ifb

@@ -1,1 +1,1 @@
-let x = read in print x
+call/cc k in throw k 2

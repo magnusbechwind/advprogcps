@@ -38,7 +38,8 @@ expr:
   | IF e1 = expr THEN e2 = expr ELSE e3 = expr {Ast.IfEl (e1, e2, e3)}
   | e1 = expr_add SEMICOLON e2 = expr { Ast.App(Ast.Fn(Ast.Wildcard, e2), e1) } 
   | CALLCC k = ident IN e = expr { Ast.App (Ast.Primop Callcc, Ast.Fn(k, e)) }
-  | THROW k = ident e = expr { Ast.App(Ast.Primop Throw, Ast.Fn(k, e))}
+  // | CALLCC k = ident IN e = expr { Ast.Fn (k, Ast.App(Ast.Primop Callcc, e)) }
+  | THROW k = ident e = expr { Ast.App(Ast.Primop Throw, Ast.Tuple [Ast.Var k; e]) }
   | RESET e = expr { Ast.App(Ast.Primop Reset, e) }
   | SHIFT k = ident IN e = expr { Ast.App(Ast.Primop Shift, Ast.Fn(k, e))}
   | l = lambda { l }

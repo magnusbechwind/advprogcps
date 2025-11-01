@@ -9,7 +9,7 @@ type value =
 type cexpr =
   Halt of value
 | App of value * value list
-| Fix of (ident * ident list * cexpr) list * cexpr
+| Fix of (ident * ident list * cexpr * string option) list * cexpr
 | Tuple of (value * int) list * ident * cexpr
 | Select of int * value * ident * cexpr
 | Switch of value * cexpr list

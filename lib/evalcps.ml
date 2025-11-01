@@ -6,7 +6,7 @@ type dval =
 Tuple of dval list * int
 | Int of int
 | Bool of bool
-| Fun of dval_fun
+| Fun of dval_fun * string option
 | String of string
 
 and dval_fun = dval list -> dval
@@ -16,7 +16,8 @@ let rec dval_str = function
 | Int i -> string_of_int i
 | Bool b -> string_of_bool b
 | String str -> str
-| Fun _ -> "dval fun"
+| Fun (_,Some msg) -> Printf.sprintf "dval fun with %s" msg
+| Fun _ -> "dval fun w/o msg"
 
 type env = Ast.ident -> dval
 
@@ -32,13 +33,25 @@ let bind (env: env) (v: Ast.ident) d =
     (* Printf.printf "bind lookup %s %s\n" (Pretty.ident_str v) (Pretty.ident_str w); *)
     if v = w then d else env w
 
+let prb = false
+
+let pr a b =
+  if prb then
+    Printf.printf "bindn binding; ids %s: %i; vals %s: %i\n" (List.fold_left (fun acc x -> acc ^ Pretty.ident_str x ^ ", ") "" a) (List.length a) (List.fold_left (fun acc x -> acc ^ dval_str x ^ ", ") "" b) (List.length b)
+  else ()
+    
 let rec bindn (env: env) vl dl: env = 
+  let print () = if prb then print_endline "pr in bindn" else () in
+  print();
+  pr vl dl;  
   match (vl, dl) with
-  (v::vl, d::dl) ->
-  bindn(bind env v d) vl dl
-| ([], []) -> env
+  (v::vl', d::dl') ->
+  bindn (bind env v d) vl'
+   dl'
+| ([], []) | (_, []) -> env
 | _ -> 
-  Printf.printf "bindn binding vl %s: %i; dl %s: %i\n" (List.fold_left (fun acc x -> acc ^ Pretty.ident_str x ^ ", ") "" vl) (List.length vl) (List.fold_left (fun acc x -> acc ^ dval_str x ^ ", ") "" dl) (List.length dl);
+  print();
+  pr vl dl;
   failwith "bindn illegal argument"
 
 let field i = function
@@ -73,8 +86,8 @@ let rec eval' (env: env) = function
 | Cps.Halt v -> dv env v
 | Cps.App (f, vl) ->
   begin match dv env f with
-  | Fun g -> g (List.map (dv env) vl)
-  | _ -> failwith "f needs to be a function symbol"
+  | Fun (g, _) -> g (List.map (dv env) vl)
+  | e -> failwith (Printf.sprintf "f needs to be a function symbol; was %s" (dval_str e))
   end
 | Cps.Primop (Ast.Print, [str], [k], [c]) ->
   Printf.printf "%s" (begin match str with
@@ -89,6 +102,8 @@ end);
 | Cps.Primop (Ast.Callcc, [_], [_],[_]) ->
 
   failwith "missing calcc"
+| Cps.Primop(Ast.Reset, _, _, _) -> failwith "todo reset"
+| Cps.Primop(Ast.Shift, _, _, _) -> failwith "todo shift"
 | Cps.Primop (p, [a;b], [id], [c]) ->
   let env = begin match p with
   | Ast.Add | Sub | Mul | Div -> 
@@ -106,13 +121,30 @@ end);
   eval' env c
 | Cps.Primop (op, _,_,_) -> Printf.printf "%s" (Pretty.str_of_op op);failwith "missing primop cases"
 | Cps.Fix (funs,c) ->
-  let rec bindargs r1 (f,vl,b) =
-    Fun (fun al ->
-  Printf.printf "f: %s; vl: %s : %i; al: %s: %i\n" (Pretty.ident_str f)(List.fold_left (fun acc x -> acc ^ Pretty.ident_str x ^ ", ") "" vl) (List.length vl) (List.fold_left (fun acc x -> acc ^ dval_str x ^ ", ") "" al) (List.length al);
-    eval' (bindn (updateenv r1) vl al) b)
-  and updateenv r =
-    bindn r (List.map (fun (f,_,_) -> f) funs) (List.map (bindargs r) funs) in
-  eval' (updateenv env) c
+
+
+  let
+  rec bindargs r1 (f,vl,b,_) =
+  if prb then Printf.printf "bindargs for %s; %s\n" (Pretty.ident_str f) (List.fold_left (fun acc x -> acc ^ ", " ^ Pretty.ident_str x) "" vl) else ();
+    Fun ((fun al ->
+      if prb then (Printf.printf "f: %s; vl: %s : %i; al: %s: %i\n" (Pretty.ident_str f)(List.fold_left (fun acc x -> acc ^ Pretty.ident_str x ^ ", ") "" vl) (List.length vl) (List.fold_left (fun acc x -> acc ^ dval_str x ^ ", ") "" al) (List.length al);
+      Printf.printf "\nb: \n%s\n\n" (Prettycps.cps_ast_repr b);
+      print_endline ((Printf.sprintf "binding arguments of %s") (Pretty.ident_str f));
+      pr vl al) else ();
+    eval' (bindn (updateenv r1) vl al) b), Some (List.fold_left (fun acc a -> acc ^ (Pretty.ident_str a) ^ " ") "" vl))
+  and
+
+  updateenv r =
+  let function_bindings = List.map (fun (f,_,_,_) ->
+      if prb then Printf.printf "updating env for %s\n" (Pretty.ident_str f);
+      f) funs in
+  let argument_bindings = List.map (bindargs r) funs in
+      if prb then Printf.printf "pr in updateenv; %s\n" (List.fold_left (fun acc (x,_,_,_) ->  ", " ^ acc ^Pretty.ident_str x) "" funs);
+  pr function_bindings argument_bindings;
+    bindn r function_bindings argument_bindings
+  in
+
+    eval' (updateenv env) c
 | Cps.Tuple (vl, id, c) ->
   let vl' = Tuple (List.map (fun (v, _) -> dv env v) vl, List.length vl) in
   let env' = bind env id vl' in
@@ -125,7 +157,7 @@ end);
   let cond = dv env value in
   eval' env (begin match cond with
   | Bool v -> if v then a else b
-  | _ -> failwith "conditionals must evaluate to a boolean"
+  | e -> failwith (Printf.sprintf "conditionals must evaluate to a boolean; was %s" (dval_str e))
 end)
   (* failwith "todoo" *)
 | Cps.Switch _ -> failwith "missing switch cases"

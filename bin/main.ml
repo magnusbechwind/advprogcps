@@ -26,12 +26,12 @@ let () =
     PrintBox_text.output stdout (Pretty.program_to_tree e); print_endline "\n";
     let cp = Transform.cps e in
     Printf.printf "CPS:\n";
-    PrintBox_text.output stdout (Prettycps.cps_to_tree cp);
-    Printf.printf "\nCPS AST:\n%s\n" (Prettycps.cps_ast_repr cp);
+    PrintBox_text.output stdout (Prettycps.cps_to_tree cp); print_endline "\n";
+    (* Printf.printf "\nCPS AST:\n%s\n" (Prettycps.cps_ast_repr cp); *)
     let rec evaldval = function
     | Evalcps.Bool b -> string_of_bool b
     | Evalcps.Int i -> string_of_int i
-    | Evalcps.Fun f -> evaldval (f [])
+    | Evalcps.Fun (f,_) -> evaldval (f [])
     | Evalcps.String str -> str
     | _ -> "not a value"
     in
