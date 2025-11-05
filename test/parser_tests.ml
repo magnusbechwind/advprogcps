@@ -42,25 +42,15 @@ let%test_unit "parse cont1" =
                       Fn ( Ident "f",
                         App ( Primop Mul,
                           Tuple [
-                            App ( Var (Ident "f"),
-                              App ( Primop Add,
-                                Tuple [ Var (Ident "a"); Var (Ident "b") ]
-                              )
-                            );
-                            App ( Var (Ident "f"),
-                              App ( Primop Add,
-                                Tuple [ Var (Ident "c"); Var (Ident "d") ]
-                              )
-                            )
+                            App (Var (Ident "f"), App ( Primop Add, Tuple [ Var (Ident "a"); Var (Ident "b") ]));
+                            App (Var (Ident "f"), App ( Primop Add, Tuple [ Var (Ident "c"); Var (Ident "d") ]))
                           ]
                         )
                       ),
                       Fn ( Ident "x",
                         App ( Primop Add,
                           Tuple [
-                            App ( Primop Mul,
-                              Tuple [ Int 2; Var (Ident "x") ]
-                            );
+                            App (Primop Mul, Tuple [ Int 2; Var (Ident "x") ]);
                             Int 1
                           ]
                         )
