@@ -35,9 +35,17 @@ expr:
   | LET id = ident ASGN e1 = expr IN e2 = expr { Ast.App (Ast.Fn (id, e2), e1) }
   // {Let (Ast.Ident ident, e1, e2)}
   | IF e1 = expr THEN e2 = expr ELSE e3 = expr {Ast.IfEl (e1, e2, e3)}
-  | e = expr_add { e }
+  | e = expr_cond { e }
   | l = lambda { l }
   | CALLCC k = ident IN e = expr { Ast.App (Ast.Primop Callcc, Ast.Fn(k, e)) }
+
+expr_cond:
+  | e1 = expr_cond cond = conds e2 = expr_add { Ast.App (Ast.Primop cond, Ast.Tuple [e1;e2]) }
+  | e = expr_add { e }
+
+conds:
+  | EQ { Ast.Eq }
+  | LT { Ast.Lt }
 
 // + before *
 expr_add:
@@ -46,16 +54,8 @@ expr_add:
 
 // * before application
 expr_mul:
-    e1 = expr_mul op = mul_ops e2 = expr_cond { Ast.App (Ast.Primop op, Ast.Tuple [e1; e2]) }
-  | e = expr_cond { e }
-
-expr_cond:
-  | e1 = expr_cond cond = conds e2 = expr_sel { Ast.App (Ast.Primop cond, Ast.Tuple [e1;e2]) }
+    e1 = expr_mul op = mul_ops e2 = expr_sel { Ast.App (Ast.Primop op, Ast.Tuple [e1; e2]) }
   | e = expr_sel { e }
-
-conds:
-  | EQ { Ast.Eq }
-  | LT { Ast.Lt }
 
 // select before app
 expr_sel:
