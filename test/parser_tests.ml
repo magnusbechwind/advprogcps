@@ -2,7 +2,7 @@ open! Base
 open Lib
 
 let%test_unit "parse arith" =
-  let p = Fileparser.parse "arith.lambda" in
+  let p = Utils.parseTest "arith.lambda" in
   [%test_eq: Ast.prog] p (Some (
     App ( Primop Mul,
       Tuple [
@@ -13,7 +13,7 @@ let%test_unit "parse arith" =
   ))
 
 let%test_unit "parse if" =
-  let p = Fileparser.parse "if.lambda" in
+  let p = Utils.parseTest "if.lambda" in
   [%test_eq: Ast.prog] p (Some (
     IfEl (
       App ( Primop Eq,
@@ -28,7 +28,7 @@ let%test_unit "parse if" =
   ))
 
 let%test_unit "parse cont1" =
-  let p = Fileparser.parse "cont1.lambda" in
+  let p = Utils.parseTest "cont1.lambda" in
   [%test_eq: Ast.prog] p (Some (
     App (
       Fn ( Ident "a",

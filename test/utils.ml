@@ -1,8 +1,10 @@
 open Base
 open Lib
 
+let parseTest file = Fileparser.parse ("../../../../../test/test_programs/" ^ file)
+
 let comparisonTest filename =
-  let lambda_prog = filename |> Fileparser.parse |> Stdlib.Option.get in
+  let lambda_prog = filename |> parseTest |> Stdlib.Option.get in
   let cps_prog = Transform.cps lambda_prog in
 
   let lambda_res = Interp.interp lambda_prog in
