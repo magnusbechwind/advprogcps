@@ -1,2 +1,5 @@
-(test
- (name test_advprog))
+(library
+ (name test)
+ (libraries lib)
+ (inline_tests)
+ (preprocess (pps ppx_inline_test ppx_assert)))

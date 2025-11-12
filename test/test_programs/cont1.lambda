@@ -1,0 +1,7 @@
+let a = 1 in
+let b = 2 in
+let c = 3 in
+let d = 4 in
+let f = \x -> 2 * x + 1 in
+
+f (a + b) * f (c + d)
