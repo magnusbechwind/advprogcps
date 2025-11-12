@@ -113,3 +113,7 @@ end)
 
 
 let eval vl e_ dl = eval' (bindn env0 vl dl) e_
+
+let interp e = match eval [] e [] with
+  | Int i -> Some i
+  | _ -> None
