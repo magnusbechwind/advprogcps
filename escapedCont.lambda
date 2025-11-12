@@ -1,0 +1,2 @@
+let escapedCont = call/cc \k -> throw k (\x -> call/cc \kk -> throw kk x) in
+escapedCont (\x -> x) 2 * 2

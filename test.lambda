@@ -1,1 +1,2 @@
-call/cc k in throw k 2
+let escaped = call/cc \k -> throw k (\x -> throw k x) in
+escaped (\x -> x) 0

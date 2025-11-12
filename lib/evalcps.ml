@@ -30,29 +30,30 @@ let dv env = function
 let bind (env: env) (v: Ast.ident) d =
   (* Printf.printf "bound %s\n" (Pretty.ident_str v);  *)
   fun w ->
-    (* Printf.printf "bind lookup %s %s\n" (Pretty.ident_str v) (Pretty.ident_str w); *)
+    (* Printf.printf "bind lookup %s %s\n" (Pretty.id ent_str v) (Pretty.ident_str w); *)
     if v = w then d else env w
 
 let prb = false
 
-let pr a b =
-  if prb then
+let pr ?(b_=prb) a b =
+  if b_ then
     Printf.printf "bindn binding; ids %s: %i; vals %s: %i\n" (List.fold_left (fun acc x -> acc ^ Pretty.ident_str x ^ ", ") "" a) (List.length a) (List.fold_left (fun acc x -> acc ^ dval_str x ^ ", ") "" b) (List.length b)
   else ()
     
 let rec bindn (env: env) vl dl: env = 
   let print () = if prb then print_endline "pr in bindn" else () in
   print();
-  pr vl dl;  
+  pr ~b_:false vl dl;
   match (vl, dl) with
   (v::vl', d::dl') ->
   bindn (bind env v d) vl'
    dl'
-| ([], []) | (_, []) -> env
-| _ -> 
+| ([], []) -> env
+| (l, []) -> failwith (Printf.sprintf "too many (%i) parameters in bindn compared to arguments. Surplus parameters are:%s" (List.length l) (List.fold_left (fun acc x -> acc ^ " " ^ (Pretty.ident_str x)) "" l))
+| ([], l) ->
   print();
   pr vl dl;
-  failwith "bindn illegal argument"
+  failwith (Printf.sprintf "too few (%i) parameters in bindn compared to arguments. Surplus parameters are:%s" (List.length l) (List.fold_left (fun acc x -> acc ^ " " ^ (dval_str x)) "" l))
 
 let field i = function
 | Tuple (tpl, _) -> List.nth tpl i
@@ -85,10 +86,12 @@ let val_to_int env = function
 let rec eval' (env: env) = function
 | Cps.Halt v -> dv env v
 | Cps.App (f, vl) ->
-  begin match dv env f with
+  (* Printf.printf "f: %s\n" (Prettycps.value_repr f); *)
+  (* Printf.printf "vl: %s\n" (List.fold_left (fun acc x -> acc ^ Prettycps.value_repr x ^ " ") "" vl);   *)
+  (begin match dv env f with
   | Fun (g, _) -> g (List.map (dv env) vl)
   | e -> failwith (Printf.sprintf "f needs to be a function symbol; was %s" (dval_str e))
-  end
+  end)
 | Cps.Primop (Ast.Print, [str], [k], [c]) ->
   Printf.printf "%s" (begin match str with
   | String str -> str
@@ -124,7 +127,7 @@ end);
 
 
   let
-  rec bindargs r1 (f,vl,b,_) =
+  rec bindargs r1 (f,vl,b) =
   if prb then Printf.printf "bindargs for %s; %s\n" (Pretty.ident_str f) (List.fold_left (fun acc x -> acc ^ ", " ^ Pretty.ident_str x) "" vl) else ();
     Fun ((fun al ->
       if prb then (Printf.printf "f: %s; vl: %s : %i; al: %s: %i\n" (Pretty.ident_str f)(List.fold_left (fun acc x -> acc ^ Pretty.ident_str x ^ ", ") "" vl) (List.length vl) (List.fold_left (fun acc x -> acc ^ dval_str x ^ ", ") "" al) (List.length al);
@@ -135,11 +138,11 @@ end);
   and
 
   updateenv r =
-  let function_bindings = List.map (fun (f,_,_,_) ->
+  let function_bindings = List.map (fun (f,_,_) ->
       if prb then Printf.printf "updating env for %s\n" (Pretty.ident_str f);
       f) funs in
   let argument_bindings = List.map (bindargs r) funs in
-      if prb then Printf.printf "pr in updateenv; %s\n" (List.fold_left (fun acc (x,_,_,_) ->  ", " ^ acc ^Pretty.ident_str x) "" funs);
+      if prb then Printf.printf "pr in updateenv; %s\n" (List.fold_left (fun acc (x,_,_) ->  ", " ^ acc ^Pretty.ident_str x) "" funs);
   pr function_bindings argument_bindings;
     bindn r function_bindings argument_bindings
   in

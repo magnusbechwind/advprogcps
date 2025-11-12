@@ -25,11 +25,10 @@ let rec value_to_tree value =
     | String str -> PBox.hlist ~bars:false [make_info_node_line "String("; make_ident_line str; make_info_node_line ")"]
 
 and fix_to_tree = function
-| (id, ids, a, Some msg) -> 
+| (id, ids, a) -> 
   let x = PBox.tree (make_info_node_line "Args") (List.map ident_to_tree ids) in
   let y = PBox.tree (make_info_node_line "Cont.") [cps_to_tree a] in
-  let msg = PBox.tree (make_info_node_line "Source") [make_keyword_line msg] in
-  let z = [x; y; msg] in
+  let z = [x; y] in
   let w = PBox.tree (make_keyword_line (Pretty.ident_str id)) z in w
 | _ -> failwith "Unreachable"
 
@@ -42,7 +41,7 @@ and cps_to_tree cexp =
     [ PBox.tree (make_keyword_line "Functions") (List.map fix_to_tree fix);
     PBox.tree (make_info_node_line "Body") [cps_to_tree cexp]]
   | Cps.Tuple (fields, (Ast.Ident id), cexp) ->
-    let field_ids acc (v,i) = [make_fieldname_line (string_of_int i); value_to_tree v] @ acc in
+    let field_ids acc (v,_) = value_to_tree v :: acc in
       PBox.tree (make_keyword_line "Tuple")
       [ PBox.tree (make_keyword_line "Fields") (List.fold_left field_ids [] fields); make_keyword_line id; cps_to_tree cexp]
   | Cps.Select (i, v, Ast.Ident id, cexp) ->
@@ -74,7 +73,7 @@ and cps_ast_repr = function
   "(app)"^value_repr v ^ List.fold_left (fun acc x -> acc ^ " " ^ value_repr x) "" vals
 | Cps.Fix (fix, cexp) ->
   "(fix)"^List.fold_left
-    (fun acc (id, ids, cexp', _) -> "let " ^ Pretty.ident_str id ^ " =" ^ List.fold_left
+    (fun acc (id, ids, cexp') -> "let " ^ Pretty.ident_str id ^ " =" ^ List.fold_left
       (fun acc' x' -> acc' ^ " " ^ Pretty.ident_str x'
       ) "" ids ^
       acc ^ "->\n" ^ cps_ast_repr cexp' ^ "\n"

@@ -21,6 +21,7 @@ rule token = parse
 
 (* select *)
 | "#" { SELECT }
+| '_' { UNDERSCORE }
 
 (* I/O operators *)
 | "print" { PRINT }

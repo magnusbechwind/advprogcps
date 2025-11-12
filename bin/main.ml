@@ -27,11 +27,11 @@ let () =
     let cp = Transform.cps e in
     Printf.printf "CPS:\n";
     PrintBox_text.output stdout (Prettycps.cps_to_tree cp); print_endline "\n";
-    (* Printf.printf "\nCPS AST:\n%s\n" (Prettycps.cps_ast_repr cp); *)
-    let rec evaldval = function
+    Printf.printf "\nCPS AST:\n%s\n" (Prettycps.cps_ast_repr cp);
+    let evaldval = function
     | Evalcps.Bool b -> string_of_bool b
     | Evalcps.Int i -> string_of_int i
-    | Evalcps.Fun (f,_) -> evaldval (f [])
+    | Evalcps.Fun (_,Some str) -> failwith (Printf.sprintf "CPS evaluated to a function but we don't want that :(; value was %s" str)
     | Evalcps.String str -> str
     | _ -> "not a value"
     in
