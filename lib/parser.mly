@@ -1,31 +1,15 @@
 %{
   let get_ident id = Ast.Var (Ast.Ident id)
-
-  let rec uncurry' (expr: Ast.expr) (acc: Ast.expr list) : (Ast.expr * Ast.expr list) =
-    begin match expr with
-      Ast.App (e1, e2) ->
-        begin match e1 with
-          Ast.App (e3,e4) ->
-            uncurry' e3 (e4 :: e2 :: acc)
-          | _ -> e1, List.rev (e2 :: acc)
-          end
-      | _ -> (expr, acc)
-      end
-  
-  let rec uncurry expr =
-    let (app,tpl) = uncurry' expr [] in
-    let tup = if List.length tpl == 1 then List.hd tpl else Ast.Tuple tpl
-    in Ast.App (app, tup)
-
 %}
 
 %token EOF
 %token <string> IDENT
 %token IF THEN ELSE
+%token SELECT
 // %token BOOL
 %token TRUE FALSE
 %token PLUS MINUS MUL DIV
-%token EQ
+%token EQ ASGN LT
 %token LET IN
 %token BACKSLASH
 // %token INT
@@ -44,15 +28,24 @@
 
 prog:
     e = expr EOF { Some e }
-  | e = EOF { None }
+  | EOF { None }
 
 // each expr_* encodes precedence levels of the particular operations
 expr:
-  | LET ident = IDENT EQ e1 = expr IN e2 = expr { Ast.App (Ast.Fn (Ast.Ident ident, e1), e2) }
+  | LET id = ident ASGN e1 = expr IN e2 = expr { Ast.App (Ast.Fn (id, e2), e1) }
   // {Let (Ast.Ident ident, e1, e2)}
   | IF e1 = expr THEN e2 = expr ELSE e3 = expr {Ast.IfEl (e1, e2, e3)}
-  | e = expr_add { e }
+  | e = expr_cond { e }
   | l = lambda { l }
+  | CALLCC k = ident IN e = expr { Ast.App (Ast.Primop Callcc, Ast.Fn(k, e)) }
+
+expr_cond:
+  | e1 = expr_cond cond = conds e2 = expr_add { Ast.App (Ast.Primop cond, Ast.Tuple [e1;e2]) }
+  | e = expr_add { e }
+
+conds:
+  | EQ { Ast.Eq }
+  | LT { Ast.Lt }
 
 // + before *
 expr_add:
@@ -61,17 +54,16 @@ expr_add:
 
 // * before application
 expr_mul:
-    e1 = expr_mul op = mul_ops e2 = expr_app { Ast.App (Ast.Primop op, Ast.Tuple [e1; e2]) }
+    e1 = expr_mul op = mul_ops e2 = expr_sel { Ast.App (Ast.Primop op, Ast.Tuple [e1; e2]) }
+  | e = expr_sel { e }
+
+// select before app
+expr_sel:
+    SELECT i = INT_LITERAL e = expr_sel { Ast.Select (Int64.to_int i, e) }
   | e = expr_app { e }
 
-// app before constants or ()
 expr_app:
   e1 = expr_app e2 = expr_val { (Ast.App(e1, e2))}
-| e = expr_val { e }
-
-// assume that these will be removed
-expr_uncurry:
-  e1 = expr_uncurry e2 = expr_val {Ast.App (e1, e2)}
 | e = expr_val { e }
 
 // '(' expr ')' recurses back to the first rule
@@ -86,6 +78,7 @@ value:
       match t with
       | Ast.Tuple [e] -> e
       | Ast.Tuple _ -> t
+      | _ -> failwith "unreachable"
       }
   // | LPAREN e = expr RPAREN { e }
 

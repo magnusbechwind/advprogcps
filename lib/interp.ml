@@ -10,7 +10,7 @@ exception UnsupportedOp of string
 module Env = struct 
   (* Stupid evil hack to make show work. Might break everything. Who knows*)
   include Map.Make(String)
-  let pp = failwith "error"
+  let pp _ _ _ = ()
 end
 
 

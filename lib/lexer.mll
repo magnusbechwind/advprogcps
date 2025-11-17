@@ -16,6 +16,9 @@ rule token = parse
 | "then" { THEN }
 | "else" { ELSE }
 
+(* select *)
+| "#" { SELECT }
+
 (* operators *)
 | "->" { RARROW }
 | '\\' { BACKSLASH }
@@ -25,7 +28,9 @@ rule token = parse
 | '-' { MINUS }
 | '*' { MUL }
 | '/' { DIV }
-| '=' { EQ }
+| '=' { ASGN }
+| "==" { EQ }
+| "<" { LT }
 | "call/cc" { CALLCC }
 | "throw" { THROW }
 | "shift" { SHIFT }
@@ -36,7 +41,9 @@ rule token = parse
 | [' ''\t'] { token lexbuf }
 | '\n' { Lexing.new_line lexbuf; token lexbuf }
 
-(* | "int" { INT } *)
+(* numbers stuff *)
 | ['1'-'9']['0'-'9']* as num { INT_LITERAL (Int64.of_string num) }
+| '0' { INT_LITERAL (Int64.zero) }
+| ['0'-'9']['0'-'9']+  { failwith "cannot have leading zeroes" }
 
-| ['a'-'z''A'-'Z']['a'-'z''A'-'Z''_']* as id { IDENT id}
+| ['a'-'z''A'-'Z']['a'-'z''A'-'Z''_']* as id { IDENT id }
