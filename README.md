@@ -3,6 +3,6 @@
 Compiler from toy language to cps for the Advanced Topics in Programming
 Languages Theory.
 
-## Dependencides
+## Dependencies
 
 ppx_deriving
