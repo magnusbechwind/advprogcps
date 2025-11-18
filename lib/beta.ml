@@ -20,7 +20,7 @@ let string_of_val = function
   | Bool b -> string_of_bool b
 
 let subst_val param arg = function
-  | Var id -> if id = param then (print_endline (string_of_ident id ^ string_of_ident param); arg) else Var id
+  | Var id -> if id = param then arg else Var id
   | Int i -> Int i
   | Bool b -> Bool b
 
@@ -28,13 +28,9 @@ let subst_val param arg = function
 let rec subst_decl params args (id, f_params, cexp) = (id, f_params, subst params args cexp)
 
 and subst param arg cexpr =
-  let Ast.Ident param_s = param in
-  print_endline ("subst (" ^ param_s ^ ", " ^ (string_of_val arg) ^ ")");
   match cexpr with
   | Halt v -> Halt (subst_val param arg v)
-  | App (f, args) ->
-      print_endline (string_of_val f);
-      App (subst_val param arg f, List.map (subst_val param arg) args)
+  | App (f, args) -> App (subst_val param arg f, List.map (subst_val param arg) args)
   | Fix (decls, body) -> Fix (List.map (subst_decl param arg) decls, subst param arg body)
   | Tuple (vl, id, c) -> Tuple (List.map (fun (v, i) -> (subst_val param arg v, i)) vl, id, subst param arg c)
   | Select (i, v, id, c) -> Select (i, subst_val param arg v, id, subst param arg c)
@@ -44,8 +40,6 @@ and subst param arg cexpr =
 
 
 let subst_n (params : Ast.ident list) (args : value list) (body : cexpr) =
-  print_endline "\nParams\n";
-  let _ = params |> List.map (fun p -> let Ast.Ident (p_s) = p in print_endline p_s) in
   List.combine params args |>
   List.fold_left (fun acc (param, arg) -> subst param arg acc) body
 
@@ -116,16 +110,11 @@ let beta (f_env : f_env) (cexpr : cexpr) =
   | App (v, args) ->
     let id = to_id v in
     let (params, body) = f_env id in
-    let Ast.Ident id_s = id in
-    print_endline ("Count of " ^ (id_s) ^ " is " ^ (Int.to_string (calls id)));
+
     if calls id = 1 then
-      (
-        print_endline "AAAAAAAAAAAAAAAAAA";
-        beta_aux f_env (subst_n params args body)
-      )
+      beta_aux f_env (subst_n params args body)
     else
-      (print_endline "BBBBBBBBBBBBBBBBBB";
-      App (v, args))
+      App (v, args)
   | Fix (decls, body) ->
     let f_env' = bind_n f_env decls in
     Fix (decls, beta_aux f_env' body)
