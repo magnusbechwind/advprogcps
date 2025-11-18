@@ -1,1 +1,1 @@
-(2 + 2) + (let x = 1 in x)
+let f = \x -> x + 1 in (f 1) + (f 2)

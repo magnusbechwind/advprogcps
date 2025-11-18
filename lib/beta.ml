@@ -13,20 +13,39 @@ type calls = Ast.ident -> int
 let f_env0 _ = failwith "undefined"
 let calls0 _ = 0
 
+let string_of_ident (Ast.Ident p) = p
+let string_of_val = function
+  | Var v -> string_of_ident v
+  | Int i -> string_of_int i
+  | Bool b -> string_of_bool b
+
 let subst_val param arg = function
-  | Var id -> if id == param then arg else Var id
+  | Var id -> if id = param then (print_endline (string_of_ident id ^ string_of_ident param); arg) else Var id
   | Int i -> Int i
   | Bool b -> Bool b
 
-let rec subst param arg = function
-  | Halt -> Halt
-  | App (f, args) -> App (subst_val param arg f, List.map (subst_val param arg) args)
-  | Fix (decls, body) -> failwith "todo" (* make sure we don't subst var with a new var bound by decl!!! *)
+(** Precondition: `param` and `f_params` should be disjoint *)
+let rec subst_decl params args (id, f_params, cexp) = (id, f_params, subst params args cexp)
+
+and subst param arg cexpr =
+  let Ast.Ident param_s = param in
+  print_endline ("subst (" ^ param_s ^ ", " ^ (string_of_val arg) ^ ")");
+  match cexpr with
+  | Halt v -> Halt (subst_val param arg v)
+  | App (f, args) ->
+      print_endline (string_of_val f);
+      App (subst_val param arg f, List.map (subst_val param arg) args)
+  | Fix (decls, body) -> Fix (List.map (subst_decl param arg) decls, subst param arg body)
   | Tuple (vl, id, c) -> Tuple (List.map (fun (v, i) -> (subst_val param arg v, i)) vl, id, subst param arg c)
-  | Select (i, v, id, c) -> failwith "todo"
-  | Primop _ -> failwith "todo"
+  | Select (i, v, id, c) -> Select (i, subst_val param arg v, id, subst param arg c)
+  | Primop (op, vs, ids, cs) ->
+    Primop (op, List.map (subst_val param arg) vs, ids, List.map (subst param arg) cs)
+  | Switch (i, cs) -> Switch (i, List.map(subst param arg) cs)
+
 
 let subst_n (params : Ast.ident list) (args : value list) (body : cexpr) =
+  print_endline "\nParams\n";
+  let _ = params |> List.map (fun p -> let Ast.Ident (p_s) = p in print_endline p_s) in
   List.combine params args |>
   List.fold_left (fun acc (param, arg) -> subst param arg acc) body
 
@@ -39,7 +58,7 @@ let incr (id : Ast.ident) (calls : calls) =
   fun w -> if id = w then calls w + 1 else calls w
 
 let decr (id : Ast.ident) (calls : calls) =
-  fun w -> 
+  fun w ->
     let count = calls w in
     if count < 1 then
       failwith "attempting to decrement call count that is less than 1"
@@ -70,37 +89,87 @@ let count_calls_value (v : value) (calls : calls) =
   | Int _ -> calls
   | Bool _ -> calls
 
-let rec count_calls (cexpr : cexpr) (calls : calls) = 
-  match cexpr with
-  | Halt -> calls
-  | App (v, _) -> count_calls_value v calls
-  | Fix (decls, body) -> 
-    let bodies = body :: List.map (fun (_, _, body') -> body') decls in
-    List.fold_left (fun acc body' -> count_calls body' acc) calls bodies
-  | Tuple (vl, _, c) ->
-    let calls' = List.fold_left (fun acc (x, _) -> match x with Var id -> incr id acc | _ -> acc) calls vl in
-    count_calls c calls'
-  | Select (_, v, _, c) -> calls |> count_calls_value v |> count_calls c
-  | Primop (_, vs, _, cs) -> 
-      let calls' = List.fold_left (fun acc v -> count_calls_value v acc) calls vs in
-      List.fold_left (fun acc c -> count_calls c acc) calls' cs
+let count_calls (cexpr : cexpr) =
+  let rec count_calls_aux (cexpr : cexpr) (calls : calls) = 
+    match cexpr with
+    | Halt _ -> calls
+    | App (v, _) -> count_calls_value v calls
+    | Fix (decls, body) ->
+      let bodies = body :: List.map (fun (_, _, body') -> body') decls in
+      List.fold_left (fun acc body' -> count_calls_aux body' acc) calls bodies
+    | Tuple (_, _, c) ->
+      count_calls_aux c calls
+    | Select (_, _, _, c) -> calls |> count_calls_aux c
+    | Primop (_, _, _, cs) ->
+      List.fold_left (fun acc c -> count_calls_aux c acc) calls cs
+    | Switch (_, cs) ->
+      List.fold_left (fun acc c -> count_calls_aux c acc) calls cs in
+  count_calls_aux cexpr calls0
+
 
 let rm_from_list (x : 'a) (ls : 'a list) = List.filter (fun e -> e != x) ls
 
-let rec beta_contraction (f_env : f_env) (calls : calls) = function
-| Halt -> Halt
-| App (v, args) -> 
-  let id = to_id v in
-  let (params, body) = f_env id in
-  if calls id == 1 then      
-    subst_n params args body
-  else
-    App (v, args)
+let beta (f_env : f_env) (cexpr : cexpr) =
+  let calls = count_calls cexpr in
+  let rec beta_aux (f_env : f_env) = function
+  | Halt v -> Halt v
+  | App (v, args) ->
+    let id = to_id v in
+    let (params, body) = f_env id in
+    let Ast.Ident id_s = id in
+    print_endline ("Count of " ^ (id_s) ^ " is " ^ (Int.to_string (calls id)));
+    if calls id = 1 then
+      (
+        print_endline "AAAAAAAAAAAAAAAAAA";
+        beta_aux f_env (subst_n params args body)
+      )
+    else
+      (print_endline "BBBBBBBBBBBBBBBBBB";
+      App (v, args))
+  | Fix (decls, body) ->
+    let f_env' = bind_n f_env decls in
+    Fix (decls, beta_aux f_env' body)
+  | Tuple (vl, id, c) -> Tuple (vl, id, beta_aux f_env c)
+  | Select (i, vl, id, c) -> Select (i, vl, id, beta_aux f_env c)
+  | Primop (op, vl, ids, cs) -> Primop (op, vl, ids, List.map (beta_aux f_env) cs)
+  | Switch (i, cs) -> Switch (i, List.map (beta_aux f_env) cs) in
+  beta_aux f_env cexpr
+
+let occurs_in_val id = function
+| Var v -> v = id
+| Int _ -> false
+| Bool _ -> false
+
+let fixpoint f x =
+  let rec fp acc f x = if x = acc then acc else fp (f acc) f (f x) in
+  fp (f x) f x
+
+let rec occurs id = function
+| Halt v -> occurs_in_val id v
+| App (v, args) -> List.exists (occurs_in_val id) (v :: args)
+| Fix (decls, body) -> List.exists (fun (_, _, b) -> occurs id b) decls || occurs id body
+| Tuple (vl, id, c) -> List.exists (fun (v, _) -> occurs_in_val id v) vl || occurs id c
+| Select (_, vl, id, c) -> occurs_in_val id vl || occurs id c
+| Primop (_, vl, _, cs) -> List.exists (occurs_in_val id) vl || List.exists (occurs id) cs
+| Switch (i, cs) -> occurs_in_val id i || List.exists (occurs id) cs
+
+let rec dead_fix = function
+| Halt v -> Halt v
+| App (v, args) -> App (v, args)
 | Fix (decls, body) ->
-  let f_env' = bind_n f_env decls in
-  let calls' = count_calls body calls in
-  Fix (decls, beta_contraction f_env' calls' body)
-| Tuple (vl, id, c) -> Tuple (vl, id, beta_contraction f_env calls c)
-| Select (i, vl, id, c) -> Select (i, vl, id, beta_contraction f_env calls c)
-| Primop (op, vl, ids, cs) -> Primop (op, vl, ids, List.map (beta_contraction f_env calls) cs)
-  
+  let decls' = List.filter (fun (id, _, _) ->
+    let occurs_in_decl = List.exists (fun (_, _, b) -> occurs id b) decls in
+    let occurs_in_body = occurs id body in
+    occurs_in_decl || occurs_in_body
+  ) decls in
+
+  if List.is_empty decls' then
+      dead_fix body
+  else 
+      Fix (decls', dead_fix body)
+| Tuple (vl, id, c) -> Tuple (vl, id, dead_fix c)
+| Select (i, vl, id, c) -> Select (i, vl, id, dead_fix c)
+| Primop (op, vl, ids, cs) -> Primop (op, vl, ids, List.map dead_fix cs)
+| Switch (i, cs) -> Switch (i, List.map dead_fix cs)
+
+let beta_contract = fixpoint (fun x -> x |> beta f_env0 |> dead_fix)
