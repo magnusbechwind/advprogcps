@@ -14,6 +14,10 @@ let () =
     Printf.printf "CPS:\n";
     PrintBox_text.output stdout (Prettycps.cps_to_tree cp);
 
+    let bd = Beta.beta_contract cp in
+    Printf.printf "BETA DEAD FIX FIXPOINT:\n";
+    PrintBox_text.output stdout (Prettycps.cps_to_tree bd);
+
     let comp = Data.complexity cp in
     Printf.printf "\nComplexity of CPS :\n";
     PrintBox_text.output stdout (Data.comp_to_tree comp);
