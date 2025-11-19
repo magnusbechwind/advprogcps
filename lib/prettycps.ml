@@ -41,7 +41,7 @@ and cps_to_tree cexp =
     [ PBox.tree (make_keyword_line "Functions") (List.map fix_to_tree fix);
     PBox.tree (make_info_node_line "Body") [cps_to_tree cexp]]
   | Cps.Tuple (fields, (Ast.Ident id), cexp) ->
-    let field_ids acc (v,_) = value_to_tree v :: acc in
+    let field_ids acc v = value_to_tree v :: acc in
       PBox.tree (make_keyword_line "Tuple")
       [ PBox.tree (make_keyword_line "Fields") (List.fold_left field_ids [] fields); make_keyword_line id; cps_to_tree cexp]
   | Cps.Select (i, v, Ast.Ident id, cexp) ->
@@ -80,7 +80,7 @@ and cps_ast_repr = function
     ) " " fix ^
     " in\n(fix end)\n" ^ cps_ast_repr cexp
 | Cps.Tuple (vals, id, cexp) ->
-  "(tuple)"^"let " ^ Pretty.ident_str id ^ " = (" ^ value_repr (fst (List.hd vals)) ^ List.fold_left (fun acc (x,_) -> ", " ^ value_repr x ^ acc) "" (List.tl vals) ^ ") in \n" ^ cps_ast_repr cexp
+  "(tuple)"^"let " ^ Pretty.ident_str id ^ " = (" ^ value_repr (List.hd vals) ^ List.fold_left (fun acc x -> ", " ^ value_repr x ^ acc) "" (List.tl vals) ^ ") in \n" ^ cps_ast_repr cexp
 | Cps.Select (i, v, id, cexp) -> 
     "(select)" ^ "let " ^ Pretty.ident_str id ^ " = # " ^ string_of_int i ^ " " ^ value_repr v ^ " in\n" ^ cps_ast_repr cexp
 | Cps.Primop (op, vals, ids, cexps) -> 

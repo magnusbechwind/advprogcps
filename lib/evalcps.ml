@@ -103,10 +103,7 @@ end);
 | Cps.Primop (Ast.Read, _,[i], [c]) ->
   eval' (bind env i (String (read_line ()))) c
 | Cps.Primop (Ast.Callcc, [_], [_],[_]) ->
-
   failwith "missing calcc"
-| Cps.Primop(Ast.Reset, _, _, _) -> failwith "todo reset"
-| Cps.Primop(Ast.Shift, _, _, _) -> failwith "todo shift"
 | Cps.Primop (p, [a;b], [id], [c]) ->
   let env = begin match p with
   | Ast.Add | Sub | Mul | Div -> 
@@ -122,9 +119,8 @@ end);
   | _ -> failwith "todo rest of primops in primop case of evalcps"
   end in
   eval' env c
-| Cps.Primop (op, _,_,_) -> Printf.printf "%s" (Pretty.str_of_op op);failwith "missing primop cases"
+| Cps.Primop (op, _,_,_) -> failwith (Printf.sprintf "missing primop case: %s\n" (Pretty.str_of_op op))
 | Cps.Fix (funs,c) ->
-
 
   let
   rec bindargs r1 (f,vl,b) =
@@ -149,7 +145,7 @@ end);
 
     eval' (updateenv env) c
 | Cps.Tuple (vl, id, c) ->
-  let vl' = Tuple (List.map (fun (v, _) -> dv env v) vl, List.length vl) in
+  let vl' = Tuple (List.map (dv env) vl, List.length vl) in
   let env' = bind env id vl' in
   eval' env' c
 | Cps.Select (i, v, id, c) ->

@@ -1,8 +1,6 @@
 // see https://dl.acm.org/doi/pdf/10.1145/174675.178047 and
 // https://en.wikipedia.org/wiki/Call-with-current-continuation
 
-// let f \(a,b,c) -> a + c in f
-
 let escape = \f -> call/cc \k -> f (\x -> throw k x) in
 let f = \return -> return 2; 3 in
 escape f

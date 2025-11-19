@@ -25,11 +25,13 @@ rule token = parse
 
 (* I/O operators *)
 | "print" { PRINT }
+| "println" { PRINTLN }
 | "read" { READ }
 
 (* operators *)
 | "->" { RARROW }
 | '\\' { BACKSLASH }
+| "//" { comment lexbuf}
 | '(' { LPAREN }
 | ')' { RPAREN }
 | '+' { PLUS }
@@ -41,9 +43,6 @@ rule token = parse
 | "<" { LT }
 | "call/cc" { CALLCC }
 | "throw" { THROW }
-| "shift" { SHIFT }
-| "reset" { RESET }
-
 
 (* file manipulation stuff *)
 | [' ''\t'] { token lexbuf }
@@ -57,10 +56,14 @@ rule token = parse
 | '0' { INT_LITERAL (Int64.zero) }
 | ['0'-'9']['0'-'9']+  { failwith "cannot have leading zeroes" }
 
-| ['a'-'z''A'-'Z']['a'-'z''A'-'Z''_']* as id { IDENT id }
+| ['a'-'z''A'-'Z']['a'-'z''A'-'Z''_''0'-'9']* as id { IDENT id }
 
 and str = parse
 | "\\\\"        as s {stri := (!stri) ^ s; str lexbuf}
 | "\\\""        as s {stri := (!stri) ^ s; str lexbuf}
 | '"'          {!stri}
 | _             as c {stri := (!stri) ^ (String.make 1 c); str lexbuf}
+
+and comment = parse
+| "\n"          {Lexing.new_line lexbuf; token lexbuf}
+| _             {comment lexbuf}

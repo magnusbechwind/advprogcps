@@ -10,8 +10,8 @@ exception Todo of string (* for incomplete match cases (the warnings get annoyin
 type op =
   (* arithmetic operators*) | Add | Sub | Mul | Div
   (* logical operators *) | Eq | Lt
-  (* first-class continuations (todo) *) | Callcc | Throw | Reset | Shift
-  (* I/O primitives *) | Print | Read
+  (* first-class continuations (todo) *) | Callcc | Throw
+  (* I/O primitives *) | Print | Println | Read
   [@@deriving show]
 
 type expr =

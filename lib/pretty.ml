@@ -35,11 +35,10 @@ let ident_to_tree ident = make_ident_line (ident_str ident)
     | Div -> "Div"
     | Callcc -> "Call/CC"
     | Throw -> "Throw"
-    | Reset -> "Reset"
-    | Shift -> "Shift"
     | Eq -> "Eq"
     | Lt -> "Lt"
     | Print -> "Print"
+    | Println -> "Println"
     | Read -> "Read"
     (* | _ -> raise (Ast.Todo "str_of_op  is missing a case") *)
 

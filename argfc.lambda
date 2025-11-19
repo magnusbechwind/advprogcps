@@ -1,0 +1,28 @@
+// example taken from https://carstenfuehrmann.org/papers/varieties-of-effects.pdf
+// or https://users.sussex.ac.uk/~mfb21/publications/fsen09/fsen09-short.pdf
+// as well as https://news.ycombinator.com/item?id=10058104
+// see also https://www.researchgate.net/publication/220898857_Typed_Exeptions_and_Continuations_Cannot_Macro-Express_Each_Other
+// and https://www.researchgate.net/publication/220606904_Using_a_Continuation_Twice_and_Its_Implications_for_the_Expressive_Power_of_CallCC/
+
+
+let argfc = call/cc (\k -> throw k (\x -> throw k (\y -> x))) in // <-- pdf example
+// let argfc = call/cc \k -> \x -> throw k (\y -> x) in // <-- ycombinator example
+
+// intended test expressions should be (from pdf):
+// (\x -> x 1; x 2) argfc = 1 and
+// (\x -> y -> x 1; x 2) argfc argfc = 2
+
+//(\x -> x 1; x 2) argfc
+//((\x -> \y -> \p -> p x y) argfc argfc) (\x -> \y -> x 1; y 2)
+
+//let S = \x -> \p -> p x x in
+let D = \x -> \y -> \p -> p x y in
+let M = argfc in
+let P = \x -> \y -> x 1; y 2 in
+
+//(S M) P // <-- should return 1
+((D M M) P) // <-- should return 2
+//S M
+//let f_1 = argfc in 
+//let f_2 = argfc in
+//(f_1 1, f_2 2)

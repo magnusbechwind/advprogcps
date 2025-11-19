@@ -1,2 +1,3 @@
-let escaped = call/cc \k -> throw k (\x -> throw k x) in
-escaped (\x -> x) 0
+//call/cc \k -> let _ throw k 2; 24
+
+call/cc \k -> throw k 2; 24

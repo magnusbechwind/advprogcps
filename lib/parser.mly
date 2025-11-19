@@ -1,20 +1,15 @@
-%{
-  let get_ident id = Ast.Var (Ast.Ident id)
-%}
-
 %token EOF
 %token <string> IDENT
 %token <string> STRING
 %token IF THEN ELSE
 %token SELECT
-// %token BOOL
 %token TRUE FALSE
 %token PLUS MINUS MUL DIV
 %token EQ ASGN LT
 %token LET IN
 %token BACKSLASH
-%token CALLCC THROW SHIFT RESET
-%token PRINT READ
+%token CALLCC THROW
+%token PRINT PRINTLN READ
 %token <int64> INT_LITERAL
 %token LPAREN
 %token RPAREN
@@ -34,22 +29,20 @@ prog:
 // each expr_* encodes precedence levels of the particular operations
 expr:
   | LET id = ident ASGN e1 = expr IN e2 = expr { Ast.App (Ast.Fn (id, e2), e1) }
-  // {Let (Ast.Ident ident, e1, e2)}
   | IF e1 = expr THEN e2 = expr ELSE e3 = expr {Ast.IfEl (e1, e2, e3)}
   | e1 = expr_add SEMICOLON e2 = expr { Ast.App(Ast.Fn(Ast.Wildcard, e2), e1) } 
-  | CALLCC k = ident IN e = expr { Ast.App (Ast.Primop Callcc, Ast.Fn(k, e)) }
+  | l = lambda { l }
+  | e = expr_callcc { e }
+
+expr_callcc:
   | CALLCC k = lambda { Ast.App (Ast.Primop Callcc, k) }
   | THROW k = ident e = expr { Ast.App(Ast.Primop Throw, Ast.Tuple [Ast.Var k; e]) }
   // | THROW k = ident e = expr { Ast.App(Ast.Primop Throw, Ast.App(Ast.Var k, e)) }
-  | RESET e = expr { Ast.App(Ast.Primop Reset, e) }
-  | SHIFT k = ident IN e = expr { Ast.App(Ast.Primop Shift, Ast.Fn(k, e))}
-  | l = lambda { l }
-  | e = expr_add { e }
+  // | THROW e = expr { Ast.App(Ast.Primop Throw, e) }
+| e = expr_add { e }
 
 // + before *
 expr_add:
-  | PRINT v = value { Ast.App(Ast.Primop Print, v)}
-  | READ { Ast.App(Ast.Primop Read, Ast.Var Wildcard)}
   | e1 = expr_add op = add_ops e2 = expr_mul { Ast.App (Ast.Primop op, Ast.Tuple [e1; e2]) }
   | e = expr_mul { e }
 
@@ -72,15 +65,18 @@ expr_sel:
   | e = expr_app { e }
 
 expr_app:
-  e1 = expr_app e2 = expr_val { (Ast.App(e1, e2))}
+| e1 = expr_app e2 = expr_val { (Ast.App(e1, e2))}
 | e = expr_val { e }
 
 // '(' expr ')' recurses back to the first rule
 expr_val:
-    v = value { v }
+| PRINT v = value { Ast.App(Ast.Primop Print, v)}
+| PRINTLN v = value { Ast.App(Ast.Primop Println, v)}
+| READ { Ast.App(Ast.Primop Read, Ast.Var Wildcard)}
+| v = value { v }
 
 value:
-    v = INT_LITERAL { Ast.Int (Int64.to_int v) }
+  | v = INT_LITERAL { Ast.Int (Int64.to_int v) }
   | x = ident { Ast.Var x }
   | b = bool { b }
   | str = STRING { Ast.String str }
