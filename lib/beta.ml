@@ -32,7 +32,7 @@ and subst param arg cexpr =
   | Halt v -> Halt (subst_val param arg v)
   | App (f, args) -> App (subst_val param arg f, List.map (subst_val param arg) args)
   | Fix (decls, body) -> Fix (List.map (subst_decl param arg) decls, subst param arg body)
-  | Tuple (vl, id, c) -> Tuple (List.map (fun (v, i) -> (subst_val param arg v, i)) vl, id, subst param arg c)
+  | Tuple (vl, id, c) -> Tuple (List.map (fun v -> subst_val param arg v) vl, id, subst param arg c)
   | Select (i, v, id, c) -> Select (i, subst_val param arg v, id, subst param arg c)
   | Primop (op, vs, ids, cs) ->
     Primop (op, List.map (subst_val param arg) vs, ids, List.map (subst param arg) cs)
@@ -137,7 +137,7 @@ let rec occurs id = function
 | Halt v -> occurs_in_val id v
 | App (v, args) -> List.exists (occurs_in_val id) (v :: args)
 | Fix (decls, body) -> List.exists (fun (_, _, b) -> occurs id b) decls || occurs id body
-| Tuple (vl, id, c) -> List.exists (fun (v, _) -> occurs_in_val id v) vl || occurs id c
+| Tuple (vl, id, c) -> List.exists (fun v -> occurs_in_val id v) vl || occurs id c
 | Select (_, vl, id, c) -> occurs_in_val id vl || occurs id c
 | Primop (_, vl, _, cs) -> List.exists (occurs_in_val id) vl || List.exists (occurs id) cs
 | Switch (i, cs) -> occurs_in_val id i || List.exists (occurs id) cs

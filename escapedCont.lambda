@@ -1,0 +1,4 @@
+// see https://dl.acm.org/doi/pdf/10.1145/174675.178047
+
+let escape = call/cc \k -> throw k (\x -> throw k x) in
+escape (\x -> x) 0

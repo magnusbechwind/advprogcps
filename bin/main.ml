@@ -26,11 +26,14 @@ let () =
 
 
     Printf.printf "\nCPS AST:\n%s\n" (Prettycps.cps_ast_repr cp);
-    Printf.printf "Result: %s\n" (match Evalcps.eval [] cp [] with
+    let rec evaldval = function
     | Evalcps.Bool b -> string_of_bool b
     | Evalcps.Int i -> string_of_int i
-    | _ -> "something went wrong"
-    );
-    
+    | Evalcps.Fun (_,Some str) -> (Printf.sprintf "CPS evaluated to a function but we don't want that :(; value was %s" str)
+    | Evalcps.String str -> str
+    | Evalcps.Tuple (tpl,i) -> List.fold_left (fun acc x -> acc ^ ", " ^ evaldval x  ) "" tpl
+    | _ -> "Not a value"
+    in
+    Printf.printf "Result: %s\n" (evaldval (Evalcps.eval [] cp []));
     ()
   | _ -> ()

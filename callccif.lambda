@@ -1,0 +1,3 @@
+let x = \a -> a in
+let y = \b -> b*2 in
+if (call/cc \k in true) then x 1 else y 3

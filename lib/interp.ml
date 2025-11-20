@@ -44,13 +44,20 @@ let int_bin_fun_of_op op = match op with
 | _ -> raise @@ UnsupportedOp ("Unsupported integer op: " ^ show_op op)
 
 
-let lookup env (Ident(ident)) = match Env.find_opt ident env with
-  | Some v -> v
-  | None -> raise @@ UnboundVar (Printf.sprintf "identifier: %s not bound in env" ident)
+let lookup env = function
+  | Ast.Ident ident -> 
+    begin match Env.find_opt ident env with
+      | Some v -> v
+      | None -> raise @@ UnboundVar (Printf.sprintf "identifier: %s not bound in env" ident)
+    end
+  | Wildcard -> raise @@ UnboundVar "Wildcards are not variables"
 
-let insert env (Ident(ident)) value = 
-  Env.add ident value env
-  
+let insert env ident value = 
+  match ident with
+  | Ast.Ident ident ->
+    Env.add ident value env
+  | Wildcard -> env
+
 let rec eval (env: env) (expr: expr) = 
   match expr with 
 

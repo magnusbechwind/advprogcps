@@ -1,0 +1,4 @@
+// see https://en.wikipedia.org/wiki/Call-with-current-continuation
+
+let f = \return -> let _ = return 2 in 3 in
+call/cc \k -> f (\a -> throw k a)
