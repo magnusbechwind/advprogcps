@@ -1,0 +1,11 @@
+(define (test)
+  (define (argfc)
+    (call/cc (lambda (k) (k (lambda (x) (k (lambda (y) x)))))))
+  (define (S x) (lambda (p) (p x x)))
+  (define (D x y) (lambda (p) (p x y)))
+  (define (P x y) ((lambda _ (y 2)) (x 1)))
+  ;((S (argfc)) P)
+  ((D (argfc) (argfc)) P)
+)
+
+(display (test))

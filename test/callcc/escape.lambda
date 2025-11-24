@@ -4,5 +4,5 @@
 // let f \(a,b,c) -> a + c in f
 
 let escape = \f -> call/cc \k -> f (\x -> throw k x) in
-let f = \return -> return 2; 3 in
+let f = \return -> let _ = return 2 in 3 in
 escape f

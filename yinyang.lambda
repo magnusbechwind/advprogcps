@@ -1,3 +1,0 @@
-let yin = (\c -> (print "@"; c)) (call/cc \k -> \_ -> throw k _) in
-let yang = (\c -> (print "."; c)) (call/cc \k -> \_ -> throw k _) in
-yin yang

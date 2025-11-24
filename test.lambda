@@ -1,1 +1,1 @@
-1 + (call/cc \k -> (10 + (throw k (throw k 100))))
+call/cc \k -> throw k 0

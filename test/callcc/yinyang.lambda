@@ -1,0 +1,6 @@
+// see https://groups.google.com/g/comp.lang.scheme/c/Fysq_Wplxsw/m/awxEZ_uxW20J
+// and https://web.archive.org/web/20140129194441/http://yinwang0.wordpress.com/2012/07/27/yin-yang-puzzle
+
+let yin = (\c -> (print "@"; c)) (call/cc \k -> \_ -> throw k _) in
+let yang = (\c -> (print "."; c)) (call/cc \k -> \_ -> throw k _) in
+yin yang

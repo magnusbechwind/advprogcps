@@ -1,0 +1,6 @@
+let escape = \f -> call/cc \k -> f (\x -> throw k x) in
+let id = \a -> a in
+
+let yin = (\c -> (print "@"; c)) (escape id) in
+let yang = (\c -> (print "."; c)) (escape id) in
+yin yang
