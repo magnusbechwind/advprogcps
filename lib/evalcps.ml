@@ -20,6 +20,7 @@ let rec dval_str = function
 | Fun _ -> "dval fun w/o msg"
 
 type env = Ast.ident -> dval
+(* type env = StrMap *)
 
 let dv env = function
     Cps.Int i -> Int i
@@ -28,16 +29,17 @@ let dv env = function
   | Cps.String str -> String str
 
 let bind (env: env) (v: Ast.ident) d =
-  (* Printf.printf "bound %s\n" (Pretty.ident_str v);  *)
+  (* StrMap.update (Ast.ident_str v) d *)
+  (* Printf.printf "bound %s\n" (Ast.ident_str v);  *)
   fun w ->
-    (* Printf.printf "bind lookup %s %s\n" (Pretty.id ent_str v) (Pretty.ident_str w); *)
+    (* Printf.printf "bind lookup %s %s\n" (Pretty.id ent_str v) (Ast.ident_str w); *)
     if v = w then d else env w
 
 let prb = false
 
 let pr ?(b_=prb) a b =
   if b_ then
-    Printf.printf "bindn binding; ids %s: %i; vals %s: %i\n" (List.fold_left (fun acc x -> acc ^ Pretty.ident_str x ^ ", ") "" a) (List.length a) (List.fold_left (fun acc x -> acc ^ dval_str x ^ ", ") "" b) (List.length b)
+    Printf.printf "bindn binding; ids %s: %i; vals %s: %i\n" (List.fold_left (fun acc x -> acc ^ Ast.ident_str x ^ ", ") "" a) (List.length a) (List.fold_left (fun acc x -> acc ^ dval_str x ^ ", ") "" b) (List.length b)
   else ()
     
 let rec bindn (env: env) vl dl: env = 
@@ -49,7 +51,7 @@ let rec bindn (env: env) vl dl: env =
   bindn (bind env v d) vl'
    dl'
 | ([], []) -> env
-| (l, []) -> failwith (Printf.sprintf "too many (%i) parameters in bindn compared to arguments. Surplus parameters are:%s" (List.length l) (List.fold_left (fun acc x -> acc ^ " " ^ (Pretty.ident_str x)) "" l))
+| (l, []) -> failwith (Printf.sprintf "too many (%i) parameters in bindn compared to arguments. Surplus parameters are:%s" (List.length l) (List.fold_left (fun acc x -> acc ^ " " ^ (Ast.ident_str x)) "" l))
 | ([], l) ->
   print();
   pr vl dl;
@@ -71,7 +73,7 @@ let evalbool = function
 | Ast.Lt -> (<)
 | _ -> failwith "unreachable evalbool"
 
-let env0 : (Ast.ident -> dval) = fun v -> Printf.printf "Variable %s not found!\n" (Pretty.ident_str (v)); failwith "undefined"
+let env0 : (Ast.ident -> dval) = fun v -> Printf.printf "Variable %s not found!\n" (Ast.ident_str (v)); failwith "undefined"
 
 let val_to_int env = function
 | Cps.Var v ->
@@ -100,7 +102,15 @@ let rec eval' (env: env) = function
   | Bool b -> string_of_bool b
 end);
   eval' (bind env k (Int (-1))) c
-| Cps.Primop (Ast.Read, _,[i], [c]) ->
+| Cps.Primop (Ast.Println, [str], [k], [c]) ->
+  Printf.printf "%s\n" (begin match str with
+  | String str -> str
+  | Var v -> dval_str (env v)
+  | Int i -> string_of_int i
+  | Bool b -> string_of_bool b
+end);
+  eval' (bind env k (Int (-1))) c
+  | Cps.Primop (Ast.Read, _,[i], [c]) ->
   eval' (bind env i (String (read_line ()))) c
 | Cps.Primop (Ast.Callcc, [_], [_],[_]) ->
   failwith "missing calcc"
@@ -124,21 +134,21 @@ end);
 
   let
   rec bindargs r1 (f,vl,b) =
-  if prb then Printf.printf "bindargs for %s; %s\n" (Pretty.ident_str f) (List.fold_left (fun acc x -> acc ^ ", " ^ Pretty.ident_str x) "" vl) else ();
+  if prb then Printf.printf "bindargs for %s; %s\n" (Ast.ident_str f) (List.fold_left (fun acc x -> acc ^ ", " ^ Ast.ident_str x) "" vl) else ();
     Fun ((fun al ->
-      if prb then (Printf.printf "f: %s; vl: %s : %i; al: %s: %i\n" (Pretty.ident_str f)(List.fold_left (fun acc x -> acc ^ Pretty.ident_str x ^ ", ") "" vl) (List.length vl) (List.fold_left (fun acc x -> acc ^ dval_str x ^ ", ") "" al) (List.length al);
+      if prb then (Printf.printf "f: %s; vl: %s : %i; al: %s: %i\n" (Ast.ident_str f)(List.fold_left (fun acc x -> acc ^ Ast.ident_str x ^ ", ") "" vl) (List.length vl) (List.fold_left (fun acc x -> acc ^ dval_str x ^ ", ") "" al) (List.length al);
       Printf.printf "\nb: \n%s\n\n" (Prettycps.cps_ast_repr b);
-      print_endline ((Printf.sprintf "binding arguments of %s") (Pretty.ident_str f));
+      print_endline ((Printf.sprintf "binding arguments of %s") (Ast.ident_str f));
       pr vl al) else ();
-    eval' (bindn (updateenv r1) vl al) b), Some (List.fold_left (fun acc a -> acc ^ (Pretty.ident_str a) ^ " ") "" vl))
+    eval' (bindn (updateenv r1) vl al) b), Some (List.fold_left (fun acc a -> acc ^ (Ast.ident_str a) ^ " ") "" vl))
   and
 
   updateenv r =
   let function_bindings = List.map (fun (f,_,_) ->
-      if prb then Printf.printf "updating env for %s\n" (Pretty.ident_str f);
+      if prb then Printf.printf "updating env for %s\n" (Ast.ident_str f);
       f) funs in
   let argument_bindings = List.map (bindargs r) funs in
-      if prb then Printf.printf "pr in updateenv; %s\n" (List.fold_left (fun acc (x,_,_) ->  ", " ^ acc ^Pretty.ident_str x) "" funs);
+      if prb then Printf.printf "pr in updateenv; %s\n" (List.fold_left (fun acc (x,_,_) ->  ", " ^ acc ^Ast.ident_str x) "" funs);
   pr function_bindings argument_bindings;
     bindn r function_bindings argument_bindings
   in
@@ -150,7 +160,7 @@ end);
   eval' env' c
 | Cps.Select (i, v, id, c) ->
   let v' = field i (dv env v) in
-  let env' = bind env id v' in
+  let env' = bind env  id v' in
   eval' env' c
 | Cps.Switch (value, [a;b]) ->
   let cond = dv env value in

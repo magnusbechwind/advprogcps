@@ -20,12 +20,8 @@ let make_keyword_line name = PBox.line_with_style keyword_style name
 
 let make_info_node_line info = PBox.line_with_style info_node_style info
 
-let ident_str = function
-| Ast.Ident v -> v
-| Wildcard -> "Wildcard"
 
-
-let ident_to_tree ident = make_ident_line (ident_str ident)
+let ident_to_tree ident = make_ident_line (Ast.ident_str ident)
 
     let str_of_op op = 
   match op with

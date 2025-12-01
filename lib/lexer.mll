@@ -43,6 +43,8 @@ rule token = parse
 | "<" { LT }
 | "call/cc" { CALLCC }
 | "throw" { THROW }
+| "rec" { REC }
+| "and" { AND }
 
 (* file manipulation stuff *)
 | [' ''\t'] { token lexbuf }
