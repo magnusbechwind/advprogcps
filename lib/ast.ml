@@ -4,6 +4,9 @@ type ident =
 | Ident of string
 | Wildcard
 [@@deriving show, compare, sexp, equal]
+let ident_str = function
+| Ident v -> v
+| Wildcard -> "Wildcard"
 
 exception Todo of string (* for incomplete match cases (the warnings get annoying) *)
 

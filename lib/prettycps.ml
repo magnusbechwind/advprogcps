@@ -15,7 +15,7 @@ let make_keyword_line name = PBox.line_with_style keyword_style name
 
 let make_info_node_line info = PBox.line_with_style info_node_style info
 
-let ident_to_tree ident = make_ident_line (Pretty.ident_str ident)
+let ident_to_tree ident = make_ident_line (Ast.ident_str ident)
 
 let rec value_to_tree value = 
   match value with
@@ -29,7 +29,7 @@ and fix_to_tree = function
   let x = PBox.tree (make_info_node_line "Args") (List.map ident_to_tree ids) in
   let y = PBox.tree (make_info_node_line "Cont.") [cps_to_tree a] in
   let z = [x; y] in
-  let w = PBox.tree (make_keyword_line (Pretty.ident_str id)) z in w
+  let w = PBox.tree (make_keyword_line (Ast.ident_str id)) z in w
 | _ -> failwith "Unreachable"
 
 and cps_to_tree cexp =
@@ -73,24 +73,24 @@ and cps_ast_repr = function
   "(app)"^value_repr v ^ List.fold_left (fun acc x -> acc ^ " " ^ value_repr x) "" vals
 | Cps.Fix (fix, cexp) ->
   "(fix)"^List.fold_left
-    (fun acc (id, ids, cexp') -> "let " ^ Pretty.ident_str id ^ " =" ^ List.fold_left
-      (fun acc' x' -> acc' ^ " " ^ Pretty.ident_str x'
+    (fun acc (id, ids, cexp') -> "let " ^ Ast.ident_str id ^ " =" ^ List.fold_left
+      (fun acc' x' -> acc' ^ " " ^ Ast.ident_str x'
       ) "" ids ^
       acc ^ "->\n" ^ cps_ast_repr cexp' ^ "\n"
     ) " " fix ^
     " in\n(fix end)\n" ^ cps_ast_repr cexp
 | Cps.Tuple (vals, id, cexp) ->
-  "(tuple)"^"let " ^ Pretty.ident_str id ^ " = (" ^ value_repr (List.hd vals) ^ List.fold_left (fun acc x -> ", " ^ value_repr x ^ acc) "" (List.tl vals) ^ ") in \n" ^ cps_ast_repr cexp
+  "(tuple)"^"let " ^ Ast.ident_str id ^ " = (" ^ value_repr (List.hd vals) ^ List.fold_left (fun acc x -> ", " ^ value_repr x ^ acc) "" (List.tl vals) ^ ") in \n" ^ cps_ast_repr cexp
 | Cps.Select (i, v, id, cexp) -> 
-    "(select)" ^ "let " ^ Pretty.ident_str id ^ " = # " ^ string_of_int i ^ " " ^ value_repr v ^ " in\n" ^ cps_ast_repr cexp
+    "(select)" ^ "let " ^ Ast.ident_str id ^ " = # " ^ string_of_int i ^ " " ^ value_repr v ^ " in\n" ^ cps_ast_repr cexp
 | Cps.Primop (op, vals, ids, cexps) -> 
   let op = Pretty.str_of_op op
 in
   begin match vals, ids with
   | [a;b],[id] ->
-  "(primop)"^"let " ^ Pretty.ident_str id ^ " = " ^ value_repr a ^ " " ^ op ^ " " ^ value_repr b ^ "" ^ List.fold_left (fun acc x -> " in\n" ^ cps_ast_repr x ^ acc ) "" cexps
+  "(primop)"^"let " ^ Ast.ident_str id ^ " = " ^ value_repr a ^ " " ^ op ^ " " ^ value_repr b ^ "" ^ List.fold_left (fun acc x -> " in\n" ^ cps_ast_repr x ^ acc ) "" cexps
   | vals,ids ->
-  "(primop)"^"let " ^ (List.fold_left (fun acc x -> acc ^ Pretty.ident_str x) "" ids) ^ " = " ^ op ^ " " ^ (List.fold_left (fun acc x -> acc ^ value_repr x ^ ";" ) "" vals) ^ List.fold_left (fun acc x -> " in\n" ^ cps_ast_repr x ^acc) "" cexps
+  "(primop)"^"let " ^ (List.fold_left (fun acc x -> acc ^ Ast.ident_str x) "" ids) ^ " = " ^ op ^ " " ^ (List.fold_left (fun acc x -> acc ^ value_repr x ^ ";" ) "" vals) ^ List.fold_left (fun acc x -> " in\n" ^ cps_ast_repr x ^acc) "" cexps
   end 
   | Cps.Switch (value, cexps) -> "(switch)"^value_repr value ^ " [" ^ (List.fold_left (fun acc x -> acc ^ (cps_ast_repr x) ^ "; ") "" cexps) ^ "]\n"
 

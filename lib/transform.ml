@@ -43,25 +43,25 @@ match exp with
 | Ast.App(Ast.Primop Callcc, f) ->
   (* [[callcc a]] = λk. [[a]] (λf . f k k) *)
   let k = fresh_cont() in
+  let k' = fresh_cont() in
   let x = fresh_var() in
-  Cps.Fix([k, [x], c (Cps.Var x)], to_cps f (fun v -> Cps.App(v, [Cps.Var k; Cps.Var k])))
+  Cps.Fix([k, [x], c (Cps.Var x); (k', [x], c (Cps.Var x))], to_cps f (fun v -> Cps.App(v, [Cps.Var k; Cps.Var k'])))
 
-| Ast.App(Ast.Primop Throw, Ast.Tuple [a;b]) ->
+(* | Ast.App(Ast.Primop Throw, Ast.Tuple [a;b]) ->
   (* [[throw a b]] = λk. [[a]] (λv_a. [[b]] (λv_b. v_a v_b)) *)
   let a = to_cps a in
   let b = to_cps b in
-  a (fun v_a -> b (fun v_b -> Cps.App(v_a, [v_b])))
-
+  a (fun v_a -> b (fun v_b -> Cps.App(v_a, [v_b]))) *)
   (* book description but destructured to fit into the description from Xavier Leroy *)
-| Ast.App(Ast.Primop Throw, Ast.App(a,b)) ->
+(* | Ast.App(Ast.Primop Throw, Ast.App(a,b)) ->
   let f = fresh_fun () in
   let x = fresh_var() in 
   let j = fresh_var() in
-  to_cps a (fun k -> Cps.Fix([f, [x;j], Cps.App(k, [Cps.Var x])], to_cps b c))
+  to_cps a (fun k -> Cps.Fix([f, [x;j], Cps.App(k, [Cps.Var x])], to_cps b c)) *)
 
   (* book description *)
 | Ast.App(Ast.Primop Throw, e) ->
-  let f = fresh_fun () in
+  let f = fresh_fun () in 
   let x = fresh_var() in 
   let j = fresh_var() in
   to_cps e (fun k -> Cps.Fix([f, [x;j], Cps.App(k, [Cps.Var x])], c (Cps.Var f)))
@@ -79,7 +79,10 @@ match exp with
     let inner = fun e_ -> Cps.App(f_, [e_; Cps.Var r]) in
     to_cps e inner in
   Cps.Fix([r, [x], c (Cps.Var x)], to_cps f lambda)
-| Ast.IfEl (cond, e1, e2) ->
+| Ast.Fix(_, _) ->
+  
+  failwith "todo"
+  | Ast.IfEl (cond, e1, e2) ->
   let ifb = fun b -> Cps.Switch (b, [to_cps e1 c; to_cps e2 c]) in
   to_cps cond ifb
 | e -> failwith (Printf.sprintf "Missing case in to_cps: %s" (PrintBox_text.to_string (Pretty.program_to_tree e)))

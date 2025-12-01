@@ -3,24 +3,30 @@
 // as well as https://news.ycombinator.com/item?id=10058104
 // see also https://www.researchgate.net/publication/220898857_Typed_Exeptions_and_Continuations_Cannot_Macro-Express_Each_Other
 // and https://www.researchgate.net/publication/220606904_Using_a_Continuation_Twice_and_Its_Implications_for_the_Expressive_Power_of_CallCC/
-
+// https://dl.acm.org/doi/pdf/10.1145/568547.568561
 
 let argfc = \_ -> call/cc (\k -> throw k (\x -> throw k (\y -> x))) in // <-- pdf example
 // let argfc = \_ -> call/cc \k -> \x -> throw k (\y -> x) in // <-- ycombinator example; the outermost throw can be ignored
 
-let S = \x -> \p -> p (x()) (x()) in
-let D = \x -> \y -> \p -> p (x()) (y()) in
-let M = argfc in
+let S = \x -> \p -> p x x in
+let D = \x -> \y -> \p -> p (x) (y) in
+let M = argfc () in
 let P = \x -> \y -> let _  = x 1 in y 2 in
 
 //((\x -> \p -> p x x) (argfc ())) (\x -> \y -> let _ = x 1 in y 2) // <-- should return 1
 //((\x -> \y -> \p -> p x y) (argfc ()) (argfc ())) (\x -> \y -> let _ = x 1 in y 2) // <-- should return 1
 
-(S M P)// <-- should return 1
-//((D (M) (M)) P) // <-- should return 2
+//(S M  P)// <-- should return 1
+//(D M M P) // <-- should return 2
 
-//let f_1 = argfc in 
-//let f_2 = argfc in
-//(f_1 1, f_2 2)
+//(\x -> let _ = x 1 in x 2) (argfc ())
+//(\x -> \y -> let _ = x 1 in y 2) M M
 
-//let _ = argfc true in argfc false
+//let f = argfc () in
+//(let _ = f true in f false)
+
+//let _ = argfc() true in argfc() false
+//let m = argfc () in
+//(m 1, m 2)
+(let _ = M true in M false)
+//(\f -> let _ = f true in f false) (M ())
