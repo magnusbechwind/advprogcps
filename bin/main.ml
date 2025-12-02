@@ -2,11 +2,10 @@ open Lib
 
 let args = Sys.argv
 
-let usage_msg = "main [-betac] [-cfold] <file>"
+let usage_msg = "main [--betac] [--cps] [--eval] ... <file>"
 
 let betac = ref false
 let cfold = ref false
-let lam = ref false
 let ast = ref false
 let cps = ref false
 let raw = ref false
@@ -19,7 +18,6 @@ let file_handle file = input_file := Some file
 let speclist = [
   ("--betac", Arg.Set betac, "Adds beta contraction optimization");
   ("--cfold", Arg.Set cfold, "Adds constant folding optimization");
-  ("--lam", Arg.Set lam, "Prints lambda code");
   ("--ast", Arg.Set ast, "Prints lambda AST");
   ("--cps", Arg.Set cps, "Prints CPS AST");
   ("--raw", Arg.Set raw, "Prints CPS AST before optimizations");
