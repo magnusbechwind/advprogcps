@@ -12,7 +12,7 @@ let () =
     PrintBox_text.output stdout (Pretty.program_to_tree e); print_endline "\n";
     let cp = Transform.cps e in
     Printf.printf "CPS:\n";
-    PrintBox_text.output stdout (Prettycps.cps_to_tree cp);
+    PrintBox_text.output stdout (Prettycps.cps_to_tree cp); print_endline "\n";
 
     (* let bd = Beta.beta_contract cp in
     Printf.printf "BETA DEAD FIX FIXPOINT:\n";
@@ -24,6 +24,20 @@ let () =
     Printf.printf "\nComplexity of CPS with details:\n";
     PrintBox_text.output stdout (Data.comp_to_tree ~show_details:true comp); *)
 
+    let constfold = Optim.fix [Beta.beta_contract; Constfold.const_fold] cp in
+    Printf.printf "BETA + FOLD fixpoint:\n";
+    PrintBox_text.output stdout (Prettycps.cps_to_tree constfold); print_endline "\n";
+
+    let comp = Data.complexity cp in
+    Printf.printf "\nComplexity of CPS :\n";
+    PrintBox_text.output stdout (Data.comp_to_tree comp);
+    Printf.printf "\nComplexity of CPS with details:\n";
+    PrintBox_text.output stdout (Data.comp_to_tree ~show_details:true comp);
+    let comp2 = Data.complexity constfold in
+    Printf.printf "\nComplexity of BETA + FOLD :\n";
+    PrintBox_text.output stdout (Data.comp_to_tree comp2);
+    Printf.printf "\nComplexity of BETA + FOLD with details:\n";
+    PrintBox_text.output stdout (Data.comp_to_tree ~show_details:true comp2);
 
     Printf.printf "\nCPS AST:\n%s\n" (Prettycps.cps_ast_repr cp);
     let rec evaldval = function
