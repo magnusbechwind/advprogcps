@@ -1,0 +1,6 @@
+let f = \x -> x * 2 in
+let g = \y -> y == 0 in
+if g 2 then
+  f 2 + 1
+else
+  f 4

@@ -1,0 +1,6 @@
+let f = \x -> (
+  let y = 2 + 3 in
+  let z = x * y in
+  z
+) in
+(f (1 + 2)) + (f 2)

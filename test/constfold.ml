@@ -1,7 +1,7 @@
 open Lib
-open! Base
+open Base
 
-let constfold_test file =
+let constfold_eq_test file =
   let lambda = file |> Utils.parseTest |> Stdlib.Option.get in
   let cps = Transform.cps lambda in
   let folded = Constfold.const_fold cps in
@@ -11,8 +11,20 @@ let constfold_test file =
 
   [%test_eq: int option] cps_res folded_res
 
-let%test_unit "beta cont1" = constfold_test "cont1.lambda"
+let constfold_ast_test file cps =
+  let folded = file |> Utils.parseTest |> Stdlib.Option.get |> Transform.cps |> Constfold.const_fold in
+  [%test_eq: Cps.cexpr] folded cps
 
-let%test_unit "beta arith" = constfold_test "arith.lambda"
+let%test_unit "constfold cont1" = constfold_eq_test "cont1.lambda"
 
-let%test_unit "beta if" = constfold_test "if.lambda"
+let%test_unit "constfold arith" = constfold_eq_test "arith.lambda"
+
+let%test_unit "constfold if" = constfold_eq_test "if.lambda"
+
+let%test_unit "constfold if AST" = constfold_ast_test "if.lambda" (Cps.Halt (Cps.Int 0))
+
+let%test_unit "constfold f_in_constarith" = constfold_eq_test "f_in_constarith.lambda"
+
+let%test_unit "constfold constarith_in_f" = constfold_eq_test "constarith_in_f.lambda"
+
+let%test_unit "constfold arith AST" = constfold_ast_test "arith.lambda" (Cps.Halt (Cps.Int 48))
