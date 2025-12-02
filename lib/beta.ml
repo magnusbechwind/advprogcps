@@ -13,36 +13,6 @@ type calls = Ast.ident -> int
 let f_env0 _ = failwith "undefined"
 let calls0 _ = 0
 
-let string_of_ident (Ast.Ident p) = p
-let string_of_val = function
-  | Var v -> string_of_ident v
-  | Int i -> string_of_int i
-  | Bool b -> string_of_bool b
-
-let subst_val param arg = function
-  | Var id -> if id = param then arg else Var id
-  | Int i -> Int i
-  | Bool b -> Bool b
-
-(** Precondition: `param` and `f_params` should be disjoint *)
-let rec subst_decl params args (id, f_params, cexp) = (id, f_params, subst params args cexp)
-
-and subst param arg cexpr =
-  match cexpr with
-  | Halt v -> Halt (subst_val param arg v)
-  | App (f, args) -> App (subst_val param arg f, List.map (subst_val param arg) args)
-  | Fix (decls, body) -> Fix (List.map (subst_decl param arg) decls, subst param arg body)
-  | Tuple (vl, id, c) -> Tuple (List.map (fun v -> subst_val param arg v) vl, id, subst param arg c)
-  | Select (i, v, id, c) -> Select (i, subst_val param arg v, id, subst param arg c)
-  | Primop (op, vs, ids, cs) ->
-    Primop (op, List.map (subst_val param arg) vs, ids, List.map (subst param arg) cs)
-  | Switch (i, cs) -> Switch (i, List.map(subst param arg) cs)
-
-
-let subst_n (params : Ast.ident list) (args : value list) (body : cexpr) =
-  List.combine params args |>
-  List.fold_left (fun acc (param, arg) -> subst param arg acc) body
-
 let bind (f_env : f_env) (v : Ast.ident) (f : Ast.ident list * cexpr) =
   fun w -> if v = w then f else f_env w
 
@@ -72,16 +42,12 @@ let to_ids_opt args =
   let rev = inner (Some []) args in
   Option.map List.rev rev
 
-let to_id = function
-  | Var id -> id
-  | _ -> failwith "expected var"
-
-
 let count_calls_value (v : value) (calls : calls) =
   match v with
   | Var id -> incr id calls
   | Int _ -> calls
   | Bool _ -> calls
+  | String _ -> calls
 
 let count_calls (cexpr : cexpr) =
   let rec count_calls_aux (cexpr : cexpr) (calls : calls) = 
@@ -108,11 +74,11 @@ let beta (f_env : f_env) (cexpr : cexpr) =
   let rec beta_aux (f_env : f_env) = function
   | Halt v -> Halt v
   | App (v, args) ->
-    let id = to_id v in
+    let id = v |> try_to_id |> Option.get in
     let (params, body) = f_env id in
 
     if calls id = 1 then
-      beta_aux f_env (subst_n params args body)
+      beta_aux f_env (Optim.subst_n params args body)
     else
       App (v, args)
   | Fix (decls, body) ->
@@ -128,10 +94,7 @@ let occurs_in_val id = function
 | Var v -> v = id
 | Int _ -> false
 | Bool _ -> false
-
-let fixpoint f x =
-  let rec fp acc f x = if x = acc then acc else fp (f acc) f (f x) in
-  fp (f x) f x
+| String _ -> false
 
 let rec occurs id = function
 | Halt v -> occurs_in_val id v
@@ -161,4 +124,4 @@ let rec dead_fix = function
 | Primop (op, vl, ids, cs) -> Primop (op, vl, ids, List.map dead_fix cs)
 | Switch (i, cs) -> Switch (i, List.map dead_fix cs)
 
-let beta_contract = fixpoint (fun x -> x |> beta f_env0 |> dead_fix)
+let beta_contract = Optim.fix [beta f_env0; dead_fix]
