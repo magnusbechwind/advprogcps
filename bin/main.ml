@@ -13,7 +13,7 @@ let comp = ref false
 let eval = ref false
 let input_file = ref None
 
-let file_handle file = input_file := Some file
+let file_handle file = input_file := Some (if (String.ends_with ~suffix:".lambda" file) then file else (Printf.sprintf "%s.lambda" file)) (* allows calling functions with or without the correct file extension *)
 
 let speclist = [
   ("--betac", Arg.Set betac, "Adds beta contraction optimization");
@@ -25,17 +25,17 @@ let speclist = [
   ("--eval", Arg.Set eval, "Evaluates program");
 ]
 
+let format_spec str res =
+  Printf.printf "%s\n%s\n" str (PrintBox_text.to_string res)
+
 let print_ast ast =
-  print_endline "AST:";
-  PrintBox_text.output stdout (Pretty.program_to_tree ast); print_endline "\n"
+  format_spec "AST:" (Pretty.program_to_tree ast)
 
 let print_raw cps =
-  print_endline "RAW:";
-  PrintBox_text.output stdout (Prettycps.cps_to_tree cps); print_endline "\n"
+  format_spec "(Raw) CPS:" (Prettycps.cps_to_tree cps)
 
 let print_cps cps =
-  print_endline "(optimized) CPS:";
-  PrintBox_text.output stdout (Prettycps.cps_to_tree cps); print_endline "\n"
+  format_spec "(Optimized) CPS:" (Prettycps.cps_to_tree cps)
 
 let () =
   Arg.parse speclist file_handle usage_msg;
@@ -49,7 +49,8 @@ let () =
   let file = Option.value !input_file ~default:"test.lambda" in
 
   let lambda = Fileparser.parse file in
-  lambda |> Option.iter(fun e ->
+    lambda |>
+    Option.iter(fun e ->
     if !ast then print_ast e;
 
     let cp = Transform.cps e in
@@ -63,20 +64,17 @@ let () =
     if !comp then (
       if !raw then (
         let c = Data.complexity cp in
-        print_endline "Complexity of raw CPS :";
-        PrintBox_text.output stdout (Data.comp_to_tree c);
-        print_endline "\n";
+        format_spec "Complexity of (raw) CPS :" (Data.comp_to_tree c)
       );
       (* Printf.printf "\nComplexity of CPS with details:\n";
       PrintBox_text.output stdout (Data.comp_to_tree ~show_details:true comp); *)
       if !cps then (
         let c2 = Data.complexity optimized in
-        print_endline "Complexity (optimized) CPS :";
-        PrintBox_text.output stdout (Data.comp_to_tree c2);
-        print_endline "\n";
+        format_spec "Complexity of (optimized) CPS :" (Data.comp_to_tree c2)
       );
+
       (* Printf.printf "\nComplexity of BETA + FOLD with details:\n";
-      PrintBox_text.output stdout (Data.comp_to_tree ~show_details:true comp2); *)
+      PrintBox_text.output stdout (Data.comp_to_tree ~show_details:true c2); *)
     );
 
     (* Printf.printf "\nCPS AST:\n%s\n" (Prettycps.cps_ast_repr cp); *)
@@ -87,9 +85,9 @@ let () =
       | Evalcps.Int i -> string_of_int i
       | Evalcps.Fun (_,Some str) -> (Printf.sprintf "CPS evaluated to a function but we don't want that :(; value was %s" str)
       | Evalcps.String str -> str
-      | Evalcps.Tuple (tpl,i) -> List.fold_left (fun acc x -> acc ^ ", " ^ evaldval x  ) "" tpl
+      | Evalcps.Tuple (tpl,_) -> List.fold_left (fun acc x -> acc ^ ", " ^ evaldval x  ) "" tpl
       | _ -> "Not a value"
       in
-      Printf.printf "Result: %s\n" (evaldval (Evalcps.eval [] cp []));
+      Printf.printf "Result: %s\n" (evaldval (Evalcps.interp cp));
     );
   )

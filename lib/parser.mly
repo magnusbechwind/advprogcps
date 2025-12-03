@@ -16,7 +16,6 @@
 %token UNDERSCORE
 %token RARROW
 %token COMMA SEMICOLON
-%token REC AND
 
 %start prog
 %type <Ast.prog> prog
@@ -34,14 +33,10 @@ expr:
   | e1 = expr_cond SEMICOLON e2 = expr { Ast.App(Ast.Fn(Ast.Wildcard, e2), e1) } 
   | l = lambda { l }
   | CALLCC k = expr { Ast.App (Ast.Primop Callcc, k) }
-  | REC e1 = expr_rec AND l = separated_list(AND, expr_rec) IN e2 = expr { Ast.Fix(e1 :: l, e2) }
   // | THROW k = ident e = expr { Ast.App(Ast.Primop Throw, Ast.Tuple [Ast.Var k; e]) }
   | THROW k = ident e = expr { Ast.App(Ast.App(Ast.Primop Throw,Ast.Var k),e) }
   // | THROW e = expr { Ast.App(Ast.Primop Throw, e) }
 | e = expr_cond { e }
-
-expr_rec:
-  | id = ident EQ e = expr { (id, e) }
 
 expr_cond:
   | e1 = expr_cond cond = conds e2 = expr_add { Ast.App (Ast.Primop cond, Ast.Tuple [e1;e2]) }
@@ -88,12 +83,9 @@ value:
       | Ast.Tuple _ -> t
       | _ -> failwith "unreachable"
       }
-  // | LPAREN e = expr RPAREN { e }
 
 tuple:
   | LPAREN l = separated_list(COMMA, expr) RPAREN { Ast.Tuple l}
-
-
 
 bool:
   | TRUE { Ast.Bool true }

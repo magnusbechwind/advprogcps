@@ -4,12 +4,12 @@ type ident =
 | Ident of string
 | Wildcard
 [@@deriving show, compare, sexp, equal]
+
 let ident_str = function
 | Ident v -> v
 | Wildcard -> "Wildcard"
 
 exception Todo of string (* for incomplete match cases (the warnings get annoying) *)
-
 
 type op =
   (* arithmetic operators*) | Add | Sub | Mul | Div
@@ -29,12 +29,8 @@ type expr =
   | Select of int * expr
   | IfEl of expr * expr * expr
   | Primop of op
-  | Fix of (ident * expr) list * expr
+  | Fix of (ident * expr) list * expr (* unused *)
 [@@deriving show, compare, sexp, equal]
 
 type prog = expr option
 [@@deriving show, compare, sexp, equal]
-
-(* This might not be the right representation of continuations *)
-type continuation = Cont of ident * expr
-type cprog = expr * continuation

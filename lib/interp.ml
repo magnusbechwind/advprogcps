@@ -21,6 +21,7 @@ type decl = ident * expr
 type answer =
   | IntVal of int 
   | BoolVal of bool
+  | StringVal of string
   (* Closures are an identifier, an expression, env at decl time and functions declared alongside (for fix)*)
   | ClosureVal of ident * expr * env * decl list
   | TupleVal of answer list
@@ -92,6 +93,7 @@ let rec eval (env: env) (expr: expr) =
     ) env decls in
     
     eval env' expr
+  | String v -> StringVal v
   
   and clos_with_decls env expr decls =
     let answer = eval env expr in

@@ -30,7 +30,7 @@ and fix_to_tree = function
   let y = PBox.tree (make_info_node_line "Cont.") [cps_to_tree a] in
   let z = [x; y] in
   let w = PBox.tree (make_keyword_line (Ast.ident_str id)) z in w
-| _ -> failwith "Unreachable"
+(* | _ -> failwith "Unreachable" *)
 
 and cps_to_tree cexp =
   match cexp with
