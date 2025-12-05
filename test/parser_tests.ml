@@ -1,20 +1,20 @@
 open! Base
 open Lib
 
-let%test_unit "parse arith" =
-  let p = Utils.parseTest "arith.lambda" in
-  [%test_eq: Ast.prog] p (Some (
+let%test_unit "parse > arith" =
+  let p = Utils.parse "arith.lambda" in
+  [%test_eq: Ast.expr] p (
     App ( Primop Mul,
       Tuple [
         App ( Primop Add, Tuple [ Int 3; Int 1 ] );
         App ( Primop Add, Tuple [ Int 3; Int 9 ] )
       ]
     )
-  ))
+  )
 
-let%test_unit "parse if" =
-  let p = Utils.parseTest "if.lambda" in
-  [%test_eq: Ast.prog] p (Some (
+let%test_unit "parse > if" =
+  let p = Utils.parse "if.lambda" in
+  [%test_eq: Ast.expr] p (
     IfEl (
       App ( Primop Eq,
         Tuple [
@@ -25,11 +25,11 @@ let%test_unit "parse if" =
       Int 0,
       Int 1
     )
-  ))
+  )
 
-let%test_unit "parse cont1" =
-  let p = Utils.parseTest "cont1.lambda" in
-  [%test_eq: Ast.prog] p (Some (
+let%test_unit "parse > cont1" =
+  let p = Utils.parse "cont1.lambda" in
+  [%test_eq: Ast.expr] p (
     App (
       Fn ( Ident "a",
         App (
@@ -64,4 +64,4 @@ let%test_unit "parse cont1" =
         )),
       Int 1
     )
-  ))
+  )

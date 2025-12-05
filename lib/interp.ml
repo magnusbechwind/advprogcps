@@ -151,9 +151,4 @@ let rec eval (env: env) (expr: expr) =
 
 let interp expr =
   let env = Env.empty in 
-  let answer = eval env expr in
-  
-  match answer with 
-
-  | IntVal(i) -> Some(i)
-  | _ -> None
+  eval env expr 

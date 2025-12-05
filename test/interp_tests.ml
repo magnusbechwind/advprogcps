@@ -1,11 +1,7 @@
-open Base
 open Lib
 
-let%test_unit "rev" =
-  [%test_eq: int list] (List.rev [ 3; 2; 1 ]) [ 1; 2; 3 ]
-
-let%test_unit "eval lambda AST 2 gives 2" =
-  [%test_eq: int option] (Interp.interp (Int 2)) (Some 2)
+let%test_unit "eval lambda ASj 2 gives 2" =
+  Utils.test_answer (Int 2) (Interp.interp (Int 2))
 
 let%test_unit "eval lambda AST (x -> x + 1)1 gives 2" =
   let p: Ast.expr = App (
@@ -14,7 +10,7 @@ let%test_unit "eval lambda AST (x -> x + 1)1 gives 2" =
     ),
     Int 1
   ) in
-  [%test_eq: int option] (Interp.interp p) (Some 2)
+  Utils.test_answer (Int 2) (Interp.interp p)
 
 (* AST program `(x -> (if x == 0 then (y -> 1) else (y -> y * 2) ) x ) (2 + 1)` *)
 let non_trivial_program: Ast.expr = App (
@@ -32,4 +28,4 @@ let non_trivial_program: Ast.expr = App (
 )
 
 let%test_unit "eval lambda AST non-trivial program" =
-  [%test_eq: int option] (Interp.interp non_trivial_program) (Some 6)
+  Utils.test_answer (Int 6) (Interp.interp non_trivial_program)
