@@ -1,6 +1,10 @@
 open Lib
 
-let parse file = Fileparser.parse ("../../../../../test/test_programs/" ^ file) |> Option.get
+let dir = "../../../../../test/"
+
+let parse_callcc file = Fileparser.parse (dir ^ "callcc/" ^ file) |> Option.get
+
+let parse file = Fileparser.parse (dir ^ "test_programs/" ^ file) |> Option.get
 
 open Base
 

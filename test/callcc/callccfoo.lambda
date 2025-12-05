@@ -1,1 +1,1 @@
-call/cc k in (print "foo"; throw k 10)
+call/cc \k -> (print "foo"; throw k 10)

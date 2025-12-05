@@ -5,4 +5,10 @@ Languages Theory.
 
 ## Dependencies
 
-ppx_deriving
+- ppx_deriving
+- ppx_assert
+- ppx_inline_test
+- ppx_assert
+- ppx_expect
+- ppx_sexp_conv
+- ppx_compare
