@@ -62,7 +62,7 @@ let count_calls (cexpr : cexpr) =
     | Select (_, _, _, c) -> calls |> count_calls_aux c
     | Primop (_, _, _, cs) ->
       List.fold_left (fun acc c -> count_calls_aux c acc) calls cs
-    | Switch (_, cs) ->
+    | If (_, cs) ->
       List.fold_left (fun acc c -> count_calls_aux c acc) calls cs in
   count_calls_aux cexpr calls0
 
@@ -87,7 +87,7 @@ let beta (f_env : f_env) (cexpr : cexpr) =
   | Tuple (vl, id, c) -> Tuple (vl, id, beta_aux f_env c)
   | Select (i, vl, id, c) -> Select (i, vl, id, beta_aux f_env c)
   | Primop (op, vl, ids, cs) -> Primop (op, vl, ids, List.map (beta_aux f_env) cs)
-  | Switch (i, cs) -> Switch (i, List.map (beta_aux f_env) cs) in
+  | If (i, cs) -> If (i, List.map (beta_aux f_env) cs) in
   beta_aux f_env cexpr
 
 let occurs_in_val id = function
@@ -103,7 +103,7 @@ let rec occurs id = function
 | Tuple (vl, id, c) -> List.exists (fun v -> occurs_in_val id v) vl || occurs id c
 | Select (_, vl, id, c) -> occurs_in_val id vl || occurs id c
 | Primop (_, vl, _, cs) -> List.exists (occurs_in_val id) vl || List.exists (occurs id) cs
-| Switch (i, cs) -> occurs_in_val id i || List.exists (occurs id) cs
+| If (i, cs) -> occurs_in_val id i || List.exists (occurs id) cs
 
 let rec dead_fix = function
 | Halt v -> Halt v
@@ -122,6 +122,6 @@ let rec dead_fix = function
 | Tuple (vl, id, c) -> Tuple (vl, id, dead_fix c)
 | Select (i, vl, id, c) -> Select (i, vl, id, dead_fix c)
 | Primop (op, vl, ids, cs) -> Primop (op, vl, ids, List.map dead_fix cs)
-| Switch (i, cs) -> Switch (i, List.map dead_fix cs)
+| If (i, cs) -> If (i, List.map dead_fix cs)
 
 let beta_contract = Optim.fix [beta f_env0; dead_fix]

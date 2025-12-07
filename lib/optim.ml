@@ -25,7 +25,7 @@ and subst param arg cexpr =
   | Select (i, v, id, c) -> Select (i, subst_val param arg v, id, subst param arg c)
   | Primop (op, vs, ids, cs) ->
     Primop (op, List.map (subst_val param arg) vs, ids, List.map (subst param arg) cs)
-  | Switch (i, cs) -> Switch (subst_val param arg i, List.map(subst param arg) cs)
+  | If (i, cs) -> If (subst_val param arg i, List.map(subst param arg) cs)
 
 
 let subst_n (params : Ast.ident list) (args : value list) (body : cexpr) =

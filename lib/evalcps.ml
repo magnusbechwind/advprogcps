@@ -167,13 +167,13 @@ end);
   let v' = field i (dv env v) in
   let env' = bind env  id v' in
   eval' env' c
-| Cps.Switch (value, [a;b]) ->
+| Cps.If (value, [a;b]) ->
   let cond = dv env value in
   eval' env (begin match cond with
   | Bool v -> if v then a else b
   | e -> failwith (Printf.sprintf "conditionals must evaluate to a boolean; was %s" (dval_str e))
 end)
-| Cps.Switch _ -> failwith "missing switch cases"
+| Cps.If _ -> failwith "missing switch cases"
 
 
 let eval vl e_ dl = eval' (bindn env0 vl dl) e_
