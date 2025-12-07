@@ -24,7 +24,7 @@ type cexpr =
 | Fix of (ident * ident list * cexpr) list * cexpr
 | Tuple of value list * ident * cexpr
 | Select of int * value * ident * cexpr
-| Switch of value * cexpr list
+| If of value * cexpr list
 | Primop of op * value list * ident list * cexpr list
 [@@deriving show, compare, sexp, equal]
 

@@ -107,7 +107,7 @@ and switch_const_fold env v cs =
   begin match try_to_bool v with
   | Some true -> List.nth cs 0 |> const_fold_aux env
   | Some false -> List.nth cs 1 |> const_fold_aux env
-  | None -> Switch (v, List.map (const_fold_aux env) cs)
+  | None -> If (v, List.map (const_fold_aux env) cs)
   end
 
 and primop_const_fold env op vs id c =
@@ -128,7 +128,7 @@ and const_fold_aux (env : tuple_env) = function
   let env' = insert id vs env in
   Tuple (vs, id, const_fold_aux env' c)
 | Select (i, v, id, c) -> select_const_fold env i v id c
-| Switch (v, cs) -> switch_const_fold env v cs
+| If (v, cs) -> switch_const_fold env v cs
 | Primop (op, vs, [id], [c]) -> primop_const_fold env op vs id c
 | Primop (op, vs, ids, cs) -> Primop (op, vs, ids, List.map (const_fold_aux env) cs)
 

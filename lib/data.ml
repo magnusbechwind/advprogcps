@@ -151,7 +151,7 @@ let rec complexity (cexp: cexpr) : complexity = let open Compare in match cexp w
 
 
   (* Take "worst case scenario" *)
-  | Switch (_, expr_list) -> 
+  | If (_, expr_list) -> 
 
     let worst_case = List.fold_left (fun acc expr -> max_by_total [acc; (complexity expr)]) empty_comp expr_list in
 

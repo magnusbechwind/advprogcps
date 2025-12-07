@@ -76,7 +76,7 @@ match exp with
     failwith "this AST node is not used and therefore this case should be impossible"
  (* Does not follow from Compiling with Continuations, but done with inspiration from how the 'boxed' predicate is translated in Chapter 5.3 *)
 | Ast.IfEl (cond, e1, e2) ->
-  let ifb = fun b -> Cps.Switch (b, [to_cps e1 c; to_cps e2 c]) in
+  let ifb = fun b -> Cps.If (b, [to_cps e1 c; to_cps e2 c]) in
   to_cps cond ifb
 | e -> failwith (Printf.sprintf "Missing case in to_cps: %s" (PrintBox_text.to_string (Pretty.program_to_tree e)))
 

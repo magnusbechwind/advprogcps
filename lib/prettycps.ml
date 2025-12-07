@@ -56,7 +56,7 @@ and cps_to_tree cexp =
     let idtree = PBox.tree (make_keyword_line "Idents") (List.map ident_to_tree ids) in
     let cexptree = PBox.tree (make_keyword_line "Continuation") (List.map cps_to_tree cexps) in
     PBox.tree (make_keyword_line "Primop") [Pretty.op_to_tree op; valtree; idtree; cexptree]
-  | Cps.Switch (value, cexps) ->
+  | Cps.If (value, cexps) ->
     PBox.tree (make_keyword_line "Switch") (value_to_tree value :: List.map cps_to_tree cexps)  | _ -> failwith "missing cases in cps_to_tree"
 
 and value_repr = function
@@ -92,6 +92,6 @@ in
   | vals,ids ->
   "(primop)"^"let " ^ (List.fold_left (fun acc x -> acc ^ Ast.ident_str x) "" ids) ^ " = " ^ op ^ " " ^ (List.fold_left (fun acc x -> acc ^ value_repr x ^ ";" ) "" vals) ^ List.fold_left (fun acc x -> " in\n" ^ cps_ast_repr x ^acc) "" cexps
   end 
-  | Cps.Switch (value, cexps) -> "(switch)"^value_repr value ^ " [" ^ (List.fold_left (fun acc x -> acc ^ (cps_ast_repr x) ^ "; ") "" cexps) ^ "]\n"
+  | Cps.If (value, cexps) -> "(if)"^value_repr value ^ " [" ^ (List.fold_left (fun acc x -> acc ^ (cps_ast_repr x) ^ "; ") "" cexps) ^ "]\n"
 
   (* | e -> PrintBox_text.output stdout (cps_to_tree e); print_endline "\n"; failwith "missing case in cps_ast_repr" *)
