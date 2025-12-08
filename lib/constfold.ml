@@ -18,46 +18,14 @@ let all_to f ls =
     ret (e' :: acc')
   ) (ret []) ls
 
-let to_ints = all_to try_to_int
-let to_bools = all_to try_to_bool
-
-let sum = List.fold_left (+) 0
-let dif = function
-| x :: xs -> List.fold_left (-) x xs
-| [] -> 0
-let prod = List.fold_left (Int.mul) 1
-let div = function
-| x :: xs -> List.fold_left (/) x xs
-| [] -> 0
-let eq = function
-| x :: xs -> x :: xs |> List.fold_left (fun acc y ->
-    let* acc' = acc in
-    if acc' = y then ret y else None
-  ) (ret x) |> Option.is_some
-| [] -> true
-
-type 'a lt_res =
-| First
-| HoldsTo of 'a
-| Fails
-
-let lt ls = 
-  let rec lt_aux acc ls = 
-    match ls with
-    | [] -> acc
-    | x :: xs -> match acc with
-      | First -> lt_aux (HoldsTo x) xs
-      | HoldsTo acc' -> lt_aux (if acc' < x then HoldsTo x else Fails) xs
-      | Fails -> Fails
-  in
-  let res = lt_aux First ls in
-  match res with
-  | First -> failwith "not enough arguments to lt"
-  | HoldsTo _ -> true
-  | Fails -> false
-
 let ret_int x = Int x
 let ret_bool x = Bool x
+
+let try_to_int2 tuple =
+  let (x, y) = tuple in
+  let* x' = try_to_int x in
+  let* y' = try_to_int y in
+  ret (x', y')
 
 (**
   Attempts constant-folding over primop.
@@ -67,16 +35,23 @@ let ret_bool x = Bool x
   returns [None] otherwise.
 *)
 let primop_const_simpl op vs =
+  let pair = match vs with
+  | x :: y :: [] -> (x, y)
+  | _ -> failwith "too many arguments to primop" in
   match op with
-  | Ast.Add -> vs |> to_ints |> Option.map sum |> Option.map ret_int
-  | Ast.Sub -> vs |> to_ints |> Option.map dif |> Option.map ret_int
-  | Ast.Mul -> vs |> to_ints |> Option.map prod |> Option.map ret_int
-  | Ast.Div -> vs |> to_ints |> Option.map div |> Option.map ret_int
-  | Ast.Eq -> begin match to_ints vs with
-    | Some vs' -> vs' |> eq |> ret_bool |> ret
-    | None -> vs |> to_bools |> Option.map eq |> Option.map ret_bool
+  | Ast.Add -> pair |> try_to_int2 |> Option.map (fun (x, y) -> x + y) |> Option.map ret_int
+  | Ast.Sub -> pair |> try_to_int2 |> Option.map (fun (x, y) -> x - y) |> Option.map ret_int
+  | Ast.Mul -> pair |> try_to_int2 |> Option.map (fun (x, y) -> x * y) |> Option.map ret_int
+  | Ast.Div -> pair |> try_to_int2 |> Option.map (fun (x, y) -> x / y) |> Option.map ret_int
+  | Ast.Eq -> begin match pair with
+    | (Int x, Int y) -> (x = y) |> ret_bool |> Option.some
+    | (Bool x, Bool y) -> (x = y) |> ret_bool |> Option.some
+    | _ -> failwith "illegal argument type to == comparison"
     end
-  | Ast.Lt -> vs |> to_ints |> Option.map lt |> Option.map ret_bool
+  | Ast.Lt -> begin match pair with
+    | (Int x, Int y) -> (x < y) |> ret_bool |> Option.some
+    | _ -> failwith "illegal argument type to == comparison"
+    end
   | Ast.Callcc | Ast.Throw | Ast.Print | Ast.Println | Ast.Read -> None
 
 type tuple_env = Ast.ident -> value list option
