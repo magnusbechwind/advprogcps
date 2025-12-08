@@ -6,6 +6,13 @@ let parse_callcc file = Fileparser.parse (dir ^ "callcc/" ^ file) |> Option.get
 
 let parse file = Fileparser.parse (dir ^ "test_programs/" ^ file) |> Option.get
 
+let test_files test_dirs =
+  let test_dirs = test_dirs |> List.map (fun x -> dir^x) in
+
+  let names = List.fold_left (fun acc dir -> Sys.readdir dir |> Array.to_list |> List.map (fun name -> dir ^ "/" ^ name) |> List.append acc) [] test_dirs in
+  let names =  List.filter (fun name -> String.ends_with ~suffix:".lambda" name) names in
+  names
+
 open Base
 
 type eval =

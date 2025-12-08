@@ -15,3 +15,7 @@ let%test_unit "beta-fold > beta_fold AST" =
   [%test_eq: Cps.cexpr] (Cps.Halt (Cps.Int 8)) optimized
 
 let%test_unit "beta-fold > beta_fold_2 eval" = cps_test beta_fold_fix "beta_fold_2.lambda"
+
+let%test_unit "beta-fold > beta_fold_3 AST" =
+  let optimized = "beta_fold_3.lambda" |> Utils.parse |> Transform.cps |> beta_fold_fix in
+  [%test_eq: Cps.cexpr] (Cps.Halt (Cps.Int 4)) optimized
