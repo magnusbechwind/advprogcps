@@ -120,7 +120,7 @@ end);
 end);
   eval' (bind env k (Int (-1))) c
   | Cps.Primop (Ast.Read, _,[i], [c]) ->
-  eval' (bind env i (String (read_line ()))) c
+  eval' (bind env i (Int (int_of_string @@ read_line ()))) c
 | Cps.Primop (Ast.Callcc, [_], [_],[_]) ->
   failwith "missing calcc"
 | Cps.Primop (p, [a;b], [id], [c]) ->
