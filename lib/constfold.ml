@@ -12,11 +12,11 @@ let try_to_bool = function
 | _ -> None
 
 let all_to f ls = 
-  List.fold_left (fun acc e ->
+  ls |> List.fold_left (fun acc e ->
     let* e' = f e in
     let* acc' = acc in
     ret (e' :: acc')
-  ) (ret []) ls
+  ) (ret []) |> Option.map List.rev
 
 let ret_int x = Int x
 let ret_bool x = Bool x
@@ -27,6 +27,19 @@ let try_to_int2 tuple =
   let* y' = try_to_int y in
   ret (x', y')
 
+let try_to_consts = all_to (fun v -> begin match v with
+  | Cps.Var _ -> None
+  | Cps.Int i -> Some(Cps.Int i)
+  | Cps.Bool b -> Some(Cps.Bool b)
+  | Cps.String s -> Some(Cps.String s)
+  end
+)
+
+let to_pair m =
+  match m with
+| x :: y :: [] -> (x, y)
+| _ -> failwith "too many arguments to primop"
+
 (**
   Attempts constant-folding over primop.
 
@@ -35,22 +48,21 @@ let try_to_int2 tuple =
   returns [None] otherwise.
 *)
 let primop_const_simpl op vs =
-  let pair = match vs with
-  | x :: y :: [] -> (x, y)
-  | _ -> failwith "too many arguments to primop" in
+  let* vs' = try_to_consts vs in
   match op with
-  | Ast.Add -> pair |> try_to_int2 |> Option.map (fun (x, y) -> x + y) |> Option.map ret_int
-  | Ast.Sub -> pair |> try_to_int2 |> Option.map (fun (x, y) -> x - y) |> Option.map ret_int
-  | Ast.Mul -> pair |> try_to_int2 |> Option.map (fun (x, y) -> x * y) |> Option.map ret_int
-  | Ast.Div -> pair |> try_to_int2 |> Option.map (fun (x, y) -> x / y) |> Option.map ret_int
-  | Ast.Eq -> begin match pair with
+  | Ast.Add -> vs' |> to_pair |> try_to_int2 |> Option.map (fun (x, y) -> x + y) |> Option.map ret_int
+  | Ast.Sub -> vs' |> to_pair |> try_to_int2 |> Option.map (fun (x, y) -> x - y) |> Option.map ret_int
+  | Ast.Mul -> vs' |> to_pair |> try_to_int2 |> Option.map (fun (x, y) -> x * y) |> Option.map ret_int
+  | Ast.Div -> vs' |> to_pair |> try_to_int2 |> Option.map (fun (x, y) -> x / y) |> Option.map ret_int
+  | Ast.Eq -> begin match to_pair vs' with
     | (Int x, Int y) -> (x = y) |> ret_bool |> Option.some
     | (Bool x, Bool y) -> (x = y) |> ret_bool |> Option.some
+    | (String x, String y) -> (x = y) |> ret_bool |> Option.some
     | _ -> failwith "illegal argument type to == comparison"
     end
-  | Ast.Lt -> begin match pair with
+  | Ast.Lt -> begin match to_pair vs' with
     | (Int x, Int y) -> (x < y) |> ret_bool |> Option.some
-    | _ -> failwith "illegal argument type to == comparison"
+    | _ -> failwith "illegal argument type to < comparison"
     end
   | Ast.Callcc | Ast.Throw | Ast.Print | Ast.Println | Ast.Read -> None
 
